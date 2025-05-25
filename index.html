@@ -6,7 +6,7 @@
     <title>NaviOS - Navegación Minimalista</title>
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Font Awesome para iconos -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -168,6 +168,11 @@
             border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
             display: flex;
             align-items: center;
+            cursor: pointer;
+        }
+        
+        .route-option:hover {
+            background-color: rgba(0, 122, 255, 0.05);
         }
         
         .route-icon {
@@ -261,56 +266,56 @@
     <!-- Barra de búsqueda -->
     <div class="search-bar" id="searchBar">
         <i class="fas fa-search search-icon"></i>
-        <input type="text" placeholder="¿A dónde quieres ir?" readonly>
+        <input type="text" id="destinationInput" placeholder="¿A dónde quieres ir?" readonly>
     </div>
     
     <!-- Mapa -->
     <div id="map"></div>
     
-    <!-- Panel de navegación (oculto inicialmente) -->
+    <!-- Panel de navegación -->
     <div class="nav-panel">
         <div class="nav-header">
             <div class="nav-title">3 rutas disponibles</div>
-            <div class="close-btn">Cerrar</div>
+            <div class="close-btn" id="closePanel">Cerrar</div>
         </div>
-        <div class="route-option">
+        <div class="route-option" id="fastRoute">
             <i class="fas fa-car route-icon"></i>
             <div class="route-info">
                 <div class="route-time">15 min</div>
                 <div class="route-details">Ruta más rápida ahora - Tráfico moderado</div>
             </div>
         </div>
-        <div class="route-option">
-            <i class="fas fa-bolt route-icon"></i>
-            <div class="route-info">
-                <div class="route-time">17 min</div>
-                <div class="route-details">Menos tráfico - 2 semáforos menos</div>
-            </div>
-        </div>
-        <div class="route-option">
+        <div class="route-option" id="ecoRoute">
             <i class="fas fa-leaf route-icon"></i>
             <div class="route-info">
-                <div class="route-time">19 min</div>
+                <div class="route-time">17 min</div>
                 <div class="route-details">Ruta ecológica - Ahorra 10% de combustible</div>
             </div>
         </div>
+        <div class="route-option" id="alternativeRoute">
+            <i class="fas fa-route route-icon"></i>
+            <div class="route-info">
+                <div class="route-time">19 min</div>
+                <div class="route-details">Ruta alternativa - Menos tráfico</div>
+            </div>
+        </div>
     </div>
     
-    <!-- Notificación (oculta inicialmente) -->
+    <!-- Notificación -->
     <div class="notification">
         <i class="fas fa-exclamation-triangle notification-icon"></i>
         <div class="notification-text">Incidente reportado 500m adelante - Reducción de velocidad</div>
-        <i class="fas fa-times close-notification"></i>
+        <i class="fas fa-times close-notification" id="closeNotification"></i>
     </div>
     
     <!-- Botón de ubicación -->
-    <div class="location-btn">
+    <div class="location-btn" id="locationButton">
         <i class="fas fa-location-arrow"></i>
     </div>
     
     <!-- Menú inferior -->
     <div class="bottom-menu">
-        <div class="menu-item active">
+        <div class="menu-item active" id="navMenuItem">
             <i class="fas fa-map-marker-alt menu-icon"></i>
             <div class="menu-text">Navegar</div>
         </div>
@@ -318,11 +323,11 @@
             <i class="fas fa-search menu-icon"></i>
             <div class="menu-text">Buscar</div>
         </div>
-        <div class="menu-item">
+        <div class="menu-item" id="reportMenuItem">
             <i class="fas fa-bullhorn menu-icon"></i>
             <div class="menu-text">Reportar</div>
         </div>
-        <div class="menu-item">
+        <div class="menu-item" id="profileMenuItem">
             <i class="fas fa-user menu-icon"></i>
             <div class="menu-text">Perfil</div>
         </div>
@@ -331,78 +336,204 @@
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
+        // Variables globales
+        let map;
+        let userLocationMarker;
+        let destinationMarker;
+        let routePolyline;
+        let currentPosition = [40.4168, -3.7038]; // Madrid como posición inicial
+        
+        // Inicializar la aplicación
+        function initApp() {
+            initMap();
+            setupEventListeners();
+            checkForDestination();
+            updateTime();
+            setInterval(updateTime, 60000);
+            simulateUserMovement();
+        }
+        
         // Inicializar el mapa
-        const map = L.map('map').setView([40.4168, -3.7038], 13); // Coordenadas de Madrid
+        function initMap() {
+            map = L.map('map').setView(currentPosition, 13);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+            }).addTo(map);
+            
+            // Marcador de posición del usuario
+            userLocationMarker = L.circleMarker(currentPosition, {
+                radius: 8,
+                fillColor: "#007aff",
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 1
+            }).addTo(map);
+            
+            // Mostrar notificación después de 4 segundos
+            setTimeout(() => {
+                document.querySelector('.notification').classList.add('visible');
+            }, 4000);
+        }
         
-        // Añadir capa de OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19,
-        }).addTo(map);
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Navegación
+            document.getElementById('searchBar').addEventListener('click', () => {
+                window.location.href = 'busqueda.html';
+            });
+            
+            document.getElementById('searchMenuItem').addEventListener('click', () => {
+                window.location.href = 'busqueda.html';
+            });
+            
+            // Panel de rutas
+            document.getElementById('closePanel').addEventListener('click', () => {
+                document.querySelector('.nav-panel').classList.remove('visible');
+            });
+            
+            document.getElementById('fastRoute').addEventListener('click', () => {
+                selectRoute('fast');
+            });
+            
+            document.getElementById('ecoRoute').addEventListener('click', () => {
+                selectRoute('eco');
+            });
+            
+            document.getElementById('alternativeRoute').addEventListener('click', () => {
+                selectRoute('alternative');
+            });
+            
+            // Notificación
+            document.getElementById('closeNotification').addEventListener('click', () => {
+                document.querySelector('.notification').classList.remove('visible');
+            });
+            
+            // Ubicación
+            document.getElementById('locationButton').addEventListener('click', centerOnUser);
+        }
         
-        // Simular ubicación del usuario
-        const userLocation = L.circleMarker([40.4168, -3.7038], {
-            radius: 8,
-            fillColor: "#007aff",
-            color: "#fff",
-            weight: 2,
-            opacity: 1,
-            fillOpacity: 1
-        }).addTo(map);
+        // Verificar si hay un destino en la URL
+        function checkForDestination() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const destination = urlParams.get('destination');
+            
+            if (destination) {
+                document.getElementById('destinationInput').value = destination;
+                showRouteToDestination(destination);
+            }
+        }
         
-        // Simular destino
-        const destination = L.marker([40.4188, -3.6918], {
-            icon: L.divIcon({
-                html: '<i class="fas fa-map-pin" style="color: #ff3b30; font-size: 32px;"></i>',
-                iconSize: [32, 32],
-                iconAnchor: [16, 32],
-                className: 'destination-icon'
-            })
-        }).addTo(map);
-        
-        // Simular ruta
-        const routeCoordinates = [
-            [40.4168, -3.7038],
-            [40.4175, -3.7000],
-            [40.4180, -3.6950],
-            [40.4188, -3.6918]
-        ];
-        
-        const route = L.polyline(routeCoordinates, {
-            color: '#007aff',
-            weight: 5,
-            opacity: 0.8
-        }).addTo(map);
-        
-        // Ajustar el mapa para mostrar la ruta
-        map.fitBounds(route.getBounds(), {padding: [50, 50]});
-        
-        // Mostrar panel de navegación después de 2 segundos (simulando búsqueda)
-        setTimeout(() => {
+        // Mostrar ruta al destino
+        function showRouteToDestination(destination) {
+            // Simular obtención de coordenadas
+            const destinationCoords = getCoordinatesForDestination(destination);
+            
+            // Limpiar marcadores anteriores
+            if (destinationMarker) map.removeLayer(destinationMarker);
+            if (routePolyline) map.removeLayer(routePolyline);
+            
+            // Añadir marcador de destino
+            destinationMarker = L.marker(destinationCoords, {
+                icon: L.divIcon({
+                    html: '<i class="fas fa-map-pin" style="color: #ff3b30; font-size: 32px;"></i>',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32]
+                })
+            }).addTo(map);
+            
+            // Simular ruta (en una app real usarías un servicio de routing)
+            const routeCoords = [
+                currentPosition,
+                destinationCoords
+            ];
+            
+            routePolyline = L.polyline(routeCoords, {
+                color: '#007aff',
+                weight: 5,
+                opacity: 0.8
+            }).addTo(map);
+            
+            // Ajustar vista del mapa
+            map.fitBounds(routePolyline.getBounds(), {padding: [50, 50]});
+            
+            // Mostrar panel de rutas
             document.querySelector('.nav-panel').classList.add('visible');
-        }, 2000);
+            
+            // Guardar en historial
+            saveToSearchHistory(destination, destinationCoords);
+        }
         
-        // Mostrar notificación después de 4 segundos
-        setTimeout(() => {
-            document.querySelector('.notification').classList.add('visible');
-        }, 4000);
-        
-        // Cerrar notificación
-        document.querySelector('.close-notification').addEventListener('click', () => {
-            document.querySelector('.notification').classList.remove('visible');
-        });
-        
-        // Cerrar panel de navegación
-        document.querySelector('.close-btn').addEventListener('click', () => {
+        // Seleccionar una ruta
+        function selectRoute(routeType) {
+            // En una app real, aquí cambiarías la ruta mostrada
+            alert(`Ruta ${routeType} seleccionada`);
             document.querySelector('.nav-panel').classList.remove('visible');
-        });
+        }
         
-        // Centrar mapa en la ubicación del usuario
-        document.querySelector('.location-btn').addEventListener('click', () => {
-            map.setView([40.4168, -3.7038], 15);
-        });
+        // Centrar en la ubicación del usuario
+        function centerOnUser() {
+            map.setView(currentPosition, 15);
+        }
         
-        // Actualizar hora cada minuto
+        // Simular movimiento del usuario (solo para demo)
+        function simulateUserMovement() {
+            setInterval(() => {
+                // Pequeña variación en la posición
+                currentPosition = [
+                    currentPosition[0] + (Math.random() * 0.0005 - 0.00025),
+                    currentPosition[1] + (Math.random() * 0.0005 - 0.00025)
+                ];
+                
+                // Actualizar marcador
+                userLocationMarker.setLatLng(currentPosition);
+                
+                // Si hay una ruta, actualizarla
+                if (routePolyline) {
+                    const currentRoute = routePolyline.getLatLngs();
+                    currentRoute[0] = currentPosition;
+                    routePolyline.setLatLngs(currentRoute);
+                }
+            }, 3000);
+        }
+        
+        // Obtener coordenadas para un destino (simulado)
+        function getCoordinatesForDestination(destination) {
+            const destinations = {
+                "Casa": [40.4188, -3.6918],
+                "Trabajo": [40.4215, -3.6923],
+                "Estación de Atocha": [40.4065, -3.6896],
+                "Centro Comercial La Vaguada": [40.4789, -3.7235],
+                "Aeropuerto Adolfo Suárez": [40.4936, -3.5667]
+            };
+            
+            return destinations[destination] || [40.4188, -3.6918];
+        }
+        
+        // Guardar en historial de búsquedas
+        function saveToSearchHistory(destination, coords) {
+            let history = JSON.parse(localStorage.getItem('searchHistory') || [];
+            
+            // Evitar duplicados
+            history = history.filter(item => item.destination !== destination);
+            
+            history.unshift({
+                destination: destination,
+                coords: coords,
+                timestamp: new Date().toISOString()
+            });
+            
+            // Mantener solo las últimas 5 búsquedas
+            if (history.length > 5) {
+                history = history.slice(0, 5);
+            }
+            
+            localStorage.setItem('searchHistory', JSON.stringify(history));
+        }
+        
+        // Actualizar hora
         function updateTime() {
             const now = new Date();
             let hours = now.getHours();
@@ -411,17 +542,8 @@
             document.querySelector('.time').textContent = `${hours}:${minutes}`;
         }
         
-        updateTime();
-        setInterval(updateTime, 60000);
-        
-        // Navegación a la pantalla de búsqueda
-        document.getElementById('searchBar').addEventListener('click', function() {
-            window.location.href = 'busqueda.html';
-        });
-        
-        document.getElementById('searchMenuItem').addEventListener('click', function() {
-            window.location.href = 'busqueda.html';
-        });
+        // Iniciar la aplicación
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
-  </html>
+</html>
