@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NaviOS - Buscar</title>
-    <!-- Font Awesome para iconos -->
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -85,12 +85,13 @@
             cursor: pointer;
         }
         
-        /* Historial y sugerencias */
+        /* Contenido desplazable */
         .search-content {
             margin-top: 120px;
             padding: 20px;
             overflow-y: auto;
             height: calc(100vh - 120px);
+            -webkit-overflow-scrolling: touch;
         }
         
         .section-title {
@@ -101,12 +102,18 @@
             letter-spacing: 0.5px;
         }
         
+        /* Elementos de búsqueda */
         .search-item {
             display: flex;
             align-items: center;
             padding: 12px 0;
             border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
             cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .search-item:active {
+            background-color: rgba(0, 122, 255, 0.05);
         }
         
         .search-icon {
@@ -161,6 +168,11 @@
             margin-bottom: 6px;
             color: #007aff;
             font-size: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .favorite-item:active .favorite-icon {
+            transform: scale(0.95);
         }
         
         .favorite-text {
@@ -206,12 +218,30 @@
             font-size: 12px;
             font-weight: 500;
         }
+        
+        /* Animaciones */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .search-item, .favorite-item {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        
+        .search-item:nth-child(1) { animation-delay: 0.1s; }
+        .search-item:nth-child(2) { animation-delay: 0.2s; }
+        .search-item:nth-child(3) { animation-delay: 0.3s; }
+        .favorite-item:nth-child(1) { animation-delay: 0.1s; }
+        .favorite-item:nth-child(2) { animation-delay: 0.2s; }
+        .favorite-item:nth-child(3) { animation-delay: 0.3s; }
+        .favorite-item:nth-child(4) { animation-delay: 0.4s; }
     </style>
 </head>
 <body>
     <!-- Barra superior estilo iOS -->
     <div class="top-bar">
-        <div class="time">9:41</div>
+        <div class="time" id="currentTime">9:41</div>
         <div class="status-icons">
             <i class="fas fa-signal"></i>
             <i class="fas fa-wifi"></i>
@@ -223,100 +253,13 @@
     <div class="search-container">
         <div class="search-bar">
             <i class="fas fa-arrow-left back-btn" id="backButton"></i>
-            <input type="text" placeholder="¿A dónde quieres ir?" autofocus>
+            <input type="text" id="searchInput" placeholder="¿A dónde quieres ir?" autofocus>
         </div>
     </div>
     
     <!-- Contenido de búsqueda -->
-    <div class="search-content">
-        <!-- Favoritos -->
-        <div class="section-title">Favoritos</div>
-        <div class="favorites-grid">
-            <div class="favorite-item" onclick="selectDestination('Casa')">
-                <div class="favorite-icon">
-                    <i class="fas fa-home"></i>
-                </div>
-                <div class="favorite-text">Casa</div>
-            </div>
-            <div class="favorite-item" onclick="selectDestination('Trabajo')">
-                <div class="favorite-icon">
-                    <i class="fas fa-briefcase"></i>
-                </div>
-                <div class="favorite-text">Trabajo</div>
-            </div>
-            <div class="favorite-item" onclick="selectDestination('Pareja')">
-                <div class="favorite-icon">
-                    <i class="fas fa-heart"></i>
-                </div>
-                <div class="favorite-text">Pareja</div>
-            </div>
-            <div class="favorite-item" onclick="addFavorite()">
-                <div class="favorite-icon">
-                    <i class="fas fa-plus"></i>
-                </div>
-                <div class="favorite-text">Añadir</div>
-            </div>
-        </div>
-        
-        <!-- Historial reciente -->
-        <div class="section-title">Historial reciente</div>
-        <div class="search-item" onclick="selectDestination('Calle Gran Vía, 28')">
-            <div class="search-icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Calle Gran Vía, 28</div>
-                <div class="search-sub-text">Madrid, España</div>
-            </div>
-        </div>
-        <div class="search-item" onclick="selectDestination('Estación de Atocha')">
-            <div class="search-icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Estación de Atocha</div>
-                <div class="search-sub-text">Plaza Emperador Carlos V, Madrid</div>
-            </div>
-        </div>
-        <div class="search-item" onclick="selectDestination('Centro Comercial La Vaguada')">
-            <div class="search-icon">
-                <i class="fas fa-clock"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Centro Comercial La Vaguada</div>
-                <div class="search-sub-text">Av. Monforte de Lemos, Madrid</div>
-            </div>
-        </div>
-        
-        <!-- Sugerencias -->
-        <div class="section-title">Sugerencias</div>
-        <div class="search-item" onclick="showCategory('restaurantes')">
-            <div class="search-icon">
-                <i class="fas fa-utensils"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Restaurantes cercanos</div>
-                <div class="search-sub-text">Mostrar opciones</div>
-            </div>
-        </div>
-        <div class="search-item" onclick="showCategory('gasolineras')">
-            <div class="search-icon">
-                <i class="fas fa-gas-pump"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Gasolineras</div>
-                <div class="search-sub-text">Mostrar opciones</div>
-            </div>
-        </div>
-        <div class="search-item" onclick="showCategory('aparcamientos')">
-            <div class="search-icon">
-                <i class="fas fa-parking"></i>
-            </div>
-            <div class="search-text">
-                <div class="search-main-text">Aparcamientos</div>
-                <div class="search-sub-text">Mostrar opciones</div>
-            </div>
-        </div>
+    <div class="search-content" id="searchContent">
+        <!-- Los elementos se cargarán dinámicamente con JavaScript -->
     </div>
     
     <!-- Menú inferior -->
@@ -338,64 +281,190 @@
             <div class="menu-text">Perfil</div>
         </div>
     </div>
-    
+
     <script>
-        // Actualizar hora cada minuto
+        // Datos de ejemplo
+        const favorites = [
+            { name: "Casa", icon: "home", type: "home" },
+            { name: "Trabajo", icon: "briefcase", type: "work" },
+            { name: "Pareja", icon: "heart", type: "partner" }
+        ];
+        
+        const recentSearches = [
+            { name: "Calle Gran Vía, 28", details: "Madrid, España", icon: "clock", type: "address" },
+            { name: "Estación de Atocha", details: "Plaza Emperador Carlos V, Madrid", icon: "clock", type: "station" },
+            { name: "Centro Comercial La Vaguada", details: "Av. Monforte de Lemos, Madrid", icon: "clock", type: "mall" }
+        ];
+        
+        const suggestions = [
+            { name: "Restaurantes cercanos", details: "Mostrar opciones", icon: "utensils", type: "restaurants" },
+            { name: "Gasolineras", details: "Mostrar opciones", icon: "gas-pump", type: "gas" },
+            { name: "Aparcamientos", details: "Mostrar opciones", icon: "parking", type: "parking" }
+        ];
+        
+        // Inicializar la aplicación
+        function initSearch() {
+            updateTime();
+            loadContent();
+            setupEventListeners();
+            setInterval(updateTime, 60000);
+        }
+        
+        // Cargar contenido
+        function loadContent() {
+            const content = document.getElementById('searchContent');
+            
+            // Favoritos
+            let favoritesHTML = `
+                <div class="section-title">Favoritos</div>
+                <div class="favorites-grid">
+            `;
+            
+            favorites.forEach((fav, index) => {
+                favoritesHTML += `
+                    <div class="favorite-item" data-type="${fav.type}" data-name="${fav.name}">
+                        <div class="favorite-icon">
+                            <i class="fas fa-${fav.icon}"></i>
+                        </div>
+                        <div class="favorite-text">${fav.name}</div>
+                    </div>
+                `;
+            });
+            
+            // Botón añadir
+            favoritesHTML += `
+                    <div class="favorite-item" id="addFavorite">
+                        <div class="favorite-icon">
+                            <i class="fas fa-plus"></i>
+                        </div>
+                        <div class="favorite-text">Añadir</div>
+                    </div>
+                </div>
+            `;
+            
+            // Historial reciente
+            let historyHTML = `
+                <div class="section-title">Historial reciente</div>
+            `;
+            
+            recentSearches.forEach(item => {
+                historyHTML += `
+                    <div class="search-item" data-type="${item.type}" data-name="${item.name}">
+                        <div class="search-icon">
+                            <i class="fas fa-${item.icon}"></i>
+                        </div>
+                        <div class="search-text">
+                            <div class="search-main-text">${item.name}</div>
+                            <div class="search-sub-text">${item.details}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            // Sugerencias
+            let suggestionsHTML = `
+                <div class="section-title">Sugerencias</div>
+            `;
+            
+            suggestions.forEach(item => {
+                suggestionsHTML += `
+                    <div class="search-item" data-type="${item.type}">
+                        <div class="search-icon">
+                            <i class="fas fa-${item.icon}"></i>
+                        </div>
+                        <div class="search-text">
+                            <div class="search-main-text">${item.name}</div>
+                            <div class="search-sub-text">${item.details}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            content.innerHTML = favoritesHTML + historyHTML + suggestionsHTML;
+        }
+        
+        // Configurar event listeners
+        function setupEventListeners() {
+            // Botón de volver
+            document.getElementById('backButton').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            // Menú inferior
+            document.getElementById('navMenuItem').addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+            
+            document.getElementById('reportMenuItem').addEventListener('click', () => {
+                alert('Ir a pantalla de reportar');
+            });
+            
+            document.getElementById('profileMenuItem').addEventListener('click', () => {
+                alert('Ir a pantalla de perfil');
+            });
+            
+            // Añadir favorito
+            document.getElementById('addFavorite').addEventListener('click', addNewFavorite);
+            
+            // Búsqueda en tiempo real
+            document.getElementById('searchInput').addEventListener('input', (e) => {
+                performSearch(e.target.value);
+            });
+            
+            // Selección de elementos
+            document.querySelectorAll('.search-item, .favorite-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    const name = this.getAttribute('data-name') || 
+                                 this.querySelector('.search-main-text').textContent;
+                    
+                    if (type === 'restaurants' || type === 'gas' || type === 'parking') {
+                        showCategoryResults(type);
+                    } else {
+                        selectDestination(name);
+                    }
+                });
+            });
+        }
+        
+        // Realizar búsqueda
+        function performSearch(query) {
+            console.log('Buscando:', query);
+            // En una app real, aquí harías una llamada API o filtrarías resultados locales
+        }
+        
+        // Seleccionar destino
+        function selectDestination(destination) {
+            // Guardar en localStorage
+            localStorage.setItem('lastSearch', destination);
+            
+            // Redirigir al mapa con el destino
+            window.location.href = `index.html?destination=${encodeURIComponent(destination)}`;
+        }
+        
+        // Mostrar resultados de categoría
+        function showCategoryResults(category) {
+            alert(`Mostrando resultados de ${category}`);
+            // En una app real, cargarías resultados específicos
+        }
+        
+        // Añadir nuevo favorito
+        function addNewFavorite() {
+            alert('Añadir nuevo favorito');
+            // En una app real, mostrarías un formulario
+        }
+        
+        // Actualizar hora
         function updateTime() {
             const now = new Date();
             let hours = now.getHours();
             let minutes = now.getMinutes();
             minutes = minutes < 10 ? '0' + minutes : minutes;
-            document.querySelector('.time').textContent = `${hours}:${minutes}`;
+            document.getElementById('currentTime').textContent = `${hours}:${minutes}`;
         }
         
-        updateTime();
-        setInterval(updateTime, 60000);
-        
-        // Función para seleccionar destino
-        function selectDestination(destination) {
-            // Guardar el destino seleccionado en localStorage
-            localStorage.setItem('selectedDestination', destination);
-            // Redirigir a index.html con parámetro de destino
-            window.location.href = 'index.html?destination=' + encodeURIComponent(destination);
-        }
-        
-        // Función para mostrar categorías
-        function showCategory(category) {
-            alert('Mostrando opciones de ' + category);
-            // En una implementación real, aquí cargarías los resultados de la categoría seleccionada
-        }
-        
-        // Función para añadir favorito
-        function addFavorite() {
-            alert('Añadir nuevo favorito');
-            // En una implementación real, aquí abrirías un formulario para añadir nueva ubicación favorita
-        }
-        
-        // Navegación entre pantallas
-        document.getElementById('backButton').addEventListener('click', function() {
-            window.location.href = 'index.html';
-        });
-        
-        document.getElementById('navMenuItem').addEventListener('click', function() {
-            window.location.href = 'index.html';
-        });
-        
-        document.getElementById('reportMenuItem').addEventListener('click', function() {
-            // Aquí iría la navegación a la pantalla de reportar
-            alert('Ir a pantalla de reportar');
-        });
-        
-        document.getElementById('profileMenuItem').addEventListener('click', function() {
-            // Aquí iría la navegación a la pantalla de perfil
-            alert('Ir a pantalla de perfil');
-        });
-        
-        // Manejar búsqueda en tiempo real
-        document.querySelector('.search-bar input').addEventListener('input', function(e) {
-            console.log('Buscando:', e.target.value);
-            // Aquí iría la lógica real de búsqueda
-        });
+        // Iniciar la aplicación
+        document.addEventListener('DOMContentLoaded', initSearch);
     </script>
 </body>
 </html>
