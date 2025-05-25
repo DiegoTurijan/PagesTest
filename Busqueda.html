@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaviOS - Buscar</title>
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f2f2f7;
+            color: #1c1c1e;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        /* Barra superior */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(242, 242, 247, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .time {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .status-icons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        /* Barra de búsqueda */
+        .search-container {
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 20px;
+            background-color: #f2f2f7;
+        }
+        
+        .search-bar {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 14px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .search-bar input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 12px;
+            font-size: 16px;
+            outline: none;
+        }
+        
+        .back-btn {
+            color: #007aff;
+            margin-right: 8px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        /* Historial y sugerencias */
+        .search-content {
+            margin-top: 120px;
+            padding: 20px;
+            overflow-y: auto;
+            height: calc(100vh - 120px);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            color: #8e8e93;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .search-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        
+        .search-icon {
+            width: 24px;
+            height: 24px;
+            background-color: #e5e5ea;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 12px;
+            color: #007aff;
+        }
+        
+        .search-text {
+            flex: 1;
+        }
+        
+        .search-main-text {
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        
+        .search-sub-text {
+            font-size: 14px;
+            color: #8e8e93;
+        }
+        
+        /* Favoritos */
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .favorite-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .favorite-icon {
+            width: 44px;
+            height: 44px;
+            background-color: #e5e5ea;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 6px;
+            color: #007aff;
+            font-size: 20px;
+        }
+        
+        .favorite-text {
+            font-size: 12px;
+            text-align: center;
+            color: #1c1c1e;
+        }
+        
+        /* Menú inferior */
+        .bottom-menu {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #8e8e93;
+            cursor: pointer;
+        }
+        
+        .menu-item.active {
+            color: #007aff;
+        }
+        
+        .menu-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .menu-text {
+            font-size: 12px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra superior estilo iOS -->
+    <div class="top-bar">
+        <div class="time">9:41</div>
+        <div class="status-icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-three-quarters"></i>
+        </div>
+    </div>
+    
+    <!-- Barra de búsqueda -->
+    <div class="search-container">
+        <div class="search-bar">
+            <i class="fas fa-arrow-left back-btn" id="backButton"></i>
+            <input type="text" placeholder="¿A dónde quieres ir?" autofocus>
+        </div>
+    </div>
+    
+    <!-- Contenido de búsqueda -->
+    <div class="search-content">
+        <!-- Favoritos -->
+        <div class="section-title">Favoritos</div>
+        <div class="favorites-grid">
+            <div class="favorite-item" onclick="selectDestination('Casa')">
+                <div class="favorite-icon">
+                    <i class="fas fa-home"></i>
+                </div>
+                <div class="favorite-text">Casa</div>
+            </div>
+            <div class="favorite-item" onclick="selectDestination('Trabajo')">
+                <div class="favorite-icon">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+                <div class="favorite-text">Trabajo</div>
+            </div>
+            <div class="favorite-item" onclick="selectDestination('Pareja')">
+                <div class="favorite-icon">
+                    <i class="fas fa-heart"></i>
+                </div>
+                <div class="favorite-text">Pareja</div>
+            </div>
+            <div class="favorite-item" onclick="addFavorite()">
+                <div class="favorite-icon">
+                    <i class="fas fa-plus"></i>
+                </div>
+                <div class="favorite-text">Añadir</div>
+            </div>
+        </div>
+        
+        <!-- Historial reciente -->
+        <div class="section-title">Historial reciente</div>
+        <div class="search-item" onclick="selectDestination('Calle Gran Vía, 28')">
+            <div class="search-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Calle Gran Vía, 28</div>
+                <div class="search-sub-text">Madrid, España</div>
+            </div>
+        </div>
+        <div class="search-item" onclick="selectDestination('Estación de Atocha')">
+            <div class="search-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Estación de Atocha</div>
+                <div class="search-sub-text">Plaza Emperador Carlos V, Madrid</div>
+            </div>
+        </div>
+        <div class="search-item" onclick="selectDestination('Centro Comercial La Vaguada')">
+            <div class="search-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Centro Comercial La Vaguada</div>
+                <div class="search-sub-text">Av. Monforte de Lemos, Madrid</div>
+            </div>
+        </div>
+        
+        <!-- Sugerencias -->
+        <div class="section-title">Sugerencias</div>
+        <div class="search-item" onclick="showCategory('restaurantes')">
+            <div class="search-icon">
+                <i class="fas fa-utensils"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Restaurantes cercanos</div>
+                <div class="search-sub-text">Mostrar opciones</div>
+            </div>
+        </div>
+        <div class="search-item" onclick="showCategory('gasolineras')">
+            <div class="search-icon">
+                <i class="fas fa-gas-pump"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Gasolineras</div>
+                <div class="search-sub-text">Mostrar opciones</div>
+            </div>
+        </div>
+        <div class="search-item" onclick="showCategory('aparcamientos')">
+            <div class="search-icon">
+                <i class="fas fa-parking"></i>
+            </div>
+            <div class="search-text">
+                <div class="search-main-text">Aparcamientos</div>
+                <div class="search-sub-text">Mostrar opciones</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Menú inferior -->
+    <div class="bottom-menu">
+        <div class="menu-item" id="navMenuItem">
+            <i class="fas fa-map-marker-alt menu-icon"></i>
+            <div class="menu-text">Navegar</div>
+        </div>
+        <div class="menu-item active">
+            <i class="fas fa-search menu-icon"></i>
+            <div class="menu-text">Buscar</div>
+        </div>
+        <div class="menu-item" id="reportMenuItem">
+            <i class="fas fa-bullhorn menu-icon"></i>
+            <div class="menu-text">Reportar</div>
+        </div>
+        <div class="menu-item" id="profileMenuItem">
+            <i class="fas fa-user menu-icon"></i>
+            <div class="menu-text">Perfil</div>
+        </div>
+    </div>
+    
+    <script>
+        // Actualizar hora cada minuto
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.querySelector('.time').textContent = `${hours}:${minutes}`;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Función para seleccionar destino
+        function selectDestination(destination) {
+            // Guardar el destino seleccionado en localStorage
+            localStorage.setItem('selectedDestination', destination);
+            // Redirigir a index.html con parámetro de destino
+            window.location.href = 'index.html?destination=' + encodeURIComponent(destination);
+        }
+        
+        // Función para mostrar categorías
+        function showCategory(category) {
+            alert('Mostrando opciones de ' + category);
+            // En una implementación real, aquí cargarías los resultados de la categoría seleccionada
+        }
+        
+        // Función para añadir favorito
+        function addFavorite() {
+            alert('Añadir nuevo favorito');
+            // En una implementación real, aquí abrirías un formulario para añadir nueva ubicación favorita
+        }
+        
+        // Navegación entre pantallas
+        document.getElementById('backButton').addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+        
+        document.getElementById('navMenuItem').addEventListener('click', function() {
+            window.location.href = 'index.html';
+        });
+        
+        document.getElementById('reportMenuItem').addEventListener('click', function() {
+            // Aquí iría la navegación a la pantalla de reportar
+            alert('Ir a pantalla de reportar');
+        });
+        
+        document.getElementById('profileMenuItem').addEventListener('click', function() {
+            // Aquí iría la navegación a la pantalla de perfil
+            alert('Ir a pantalla de perfil');
+        });
+        
+        // Manejar búsqueda en tiempo real
+        document.querySelector('.search-bar input').addEventListener('input', function(e) {
+            console.log('Buscando:', e.target.value);
+            // Aquí iría la lógica real de búsqueda
+        });
+    </script>
+</body>
+</html>
