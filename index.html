@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NaviOS - Navegación Minimalista</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            background-color: #f2f2f7;
+            color: #1c1c1e;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #map {
+            height: 100vh;
+            width: 100%;
+            z-index: 1;
+        }
+        
+        /* Barra superior */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(242, 242, 247, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .time {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .status-icons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        /* Barra de búsqueda */
+        .search-bar {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 14px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+        }
+        
+        .search-bar input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px 12px;
+            font-size: 16px;
+            outline: none;
+            cursor: pointer;
+        }
+        
+        .search-icon {
+            color: #007aff;
+            margin-right: 8px;
+        }
+        
+        /* Menú inferior */
+        .bottom-menu {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 20px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-around;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .menu-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #8e8e93;
+            cursor: pointer;
+        }
+        
+        .menu-item.active {
+            color: #007aff;
+        }
+        
+        .menu-icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        .menu-text {
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        /* Panel de navegación */
+        .nav-panel {
+            position: fixed;
+            bottom: 90px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 14px;
+            padding: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            transform: translateY(150%);
+            transition: transform 0.3s ease;
+        }
+        
+        .nav-panel.visible {
+            transform: translateY(0);
+        }
+        
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        
+        .nav-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+        
+        .close-btn {
+            color: #007aff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .route-option {
+            padding: 12px 0;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+        }
+        
+        .route-icon {
+            margin-right: 12px;
+            color: #007aff;
+        }
+        
+        .route-info {
+            flex: 1;
+        }
+        
+        .route-time {
+            font-weight: 600;
+        }
+        
+        .route-details {
+            font-size: 14px;
+            color: #8e8e93;
+        }
+        
+        /* Botón de ubicación */
+        .location-btn {
+            position: fixed;
+            bottom: 90px;
+            right: 20px;
+            z-index: 1000;
+            width: 44px;
+            height: 44px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            color: #007aff;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        /* Notificación */
+        .notification {
+            position: fixed;
+            top: 120px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 14px;
+            padding: 12px 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            transform: translateY(-200%);
+            transition: transform 0.3s ease;
+        }
+        
+        .notification.visible {
+            transform: translateY(0);
+        }
+        
+        .notification-icon {
+            margin-right: 10px;
+            color: #ff9500;
+            font-size: 20px;
+        }
+        
+        .notification-text {
+            flex: 1;
+            font-size: 14px;
+        }
+        
+        .close-notification {
+            color: #8e8e93;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- Barra superior estilo iOS -->
+    <div class="top-bar">
+        <div class="time">9:41</div>
+        <div class="status-icons">
+            <i class="fas fa-signal"></i>
+            <i class="fas fa-wifi"></i>
+            <i class="fas fa-battery-three-quarters"></i>
+        </div>
+    </div>
+    
+    <!-- Barra de búsqueda -->
+    <div class="search-bar" id="searchBar">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" placeholder="¿A dónde quieres ir?" readonly>
+    </div>
+    
+    <!-- Mapa -->
+    <div id="map"></div>
+    
+    <!-- Panel de navegación (oculto inicialmente) -->
+    <div class="nav-panel">
+        <div class="nav-header">
+            <div class="nav-title">3 rutas disponibles</div>
+            <div class="close-btn">Cerrar</div>
+        </div>
+        <div class="route-option">
+            <i class="fas fa-car route-icon"></i>
+            <div class="route-info">
+                <div class="route-time">15 min</div>
+                <div class="route-details">Ruta más rápida ahora - Tráfico moderado</div>
+            </div>
+        </div>
+        <div class="route-option">
+            <i class="fas fa-bolt route-icon"></i>
+            <div class="route-info">
+                <div class="route-time">17 min</div>
+                <div class="route-details">Menos tráfico - 2 semáforos menos</div>
+            </div>
+        </div>
+        <div class="route-option">
+            <i class="fas fa-leaf route-icon"></i>
+            <div class="route-info">
+                <div class="route-time">19 min</div>
+                <div class="route-details">Ruta ecológica - Ahorra 10% de combustible</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notificación (oculta inicialmente) -->
+    <div class="notification">
+        <i class="fas fa-exclamation-triangle notification-icon"></i>
+        <div class="notification-text">Incidente reportado 500m adelante - Reducción de velocidad</div>
+        <i class="fas fa-times close-notification"></i>
+    </div>
+    
+    <!-- Botón de ubicación -->
+    <div class="location-btn">
+        <i class="fas fa-location-arrow"></i>
+    </div>
+    
+    <!-- Menú inferior -->
+    <div class="bottom-menu">
+        <div class="menu-item active">
+            <i class="fas fa-map-marker-alt menu-icon"></i>
+            <div class="menu-text">Navegar</div>
+        </div>
+        <div class="menu-item" id="searchMenuItem">
+            <i class="fas fa-search menu-icon"></i>
+            <div class="menu-text">Buscar</div>
+        </div>
+        <div class="menu-item">
+            <i class="fas fa-bullhorn menu-icon"></i>
+            <div class="menu-text">Reportar</div>
+        </div>
+        <div class="menu-item">
+            <i class="fas fa-user menu-icon"></i>
+            <div class="menu-text">Perfil</div>
+        </div>
+    </div>
+    
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Inicializar el mapa
+        const map = L.map('map').setView([40.4168, -3.7038], 13); // Coordenadas de Madrid
+        
+        // Añadir capa de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+            maxZoom: 19,
+        }).addTo(map);
+        
+        // Simular ubicación del usuario
+        const userLocation = L.circleMarker([40.4168, -3.7038], {
+            radius: 8,
+            fillColor: "#007aff",
+            color: "#fff",
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 1
+        }).addTo(map);
+        
+        // Simular destino
+        const destination = L.marker([40.4188, -3.6918], {
+            icon: L.divIcon({
+                html: '<i class="fas fa-map-pin" style="color: #ff3b30; font-size: 32px;"></i>',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                className: 'destination-icon'
+            })
+        }).addTo(map);
+        
+        // Simular ruta
+        const routeCoordinates = [
+            [40.4168, -3.7038],
+            [40.4175, -3.7000],
+            [40.4180, -3.6950],
+            [40.4188, -3.6918]
+        ];
+        
+        const route = L.polyline(routeCoordinates, {
+            color: '#007aff',
+            weight: 5,
+            opacity: 0.8
+        }).addTo(map);
+        
+        // Ajustar el mapa para mostrar la ruta
+        map.fitBounds(route.getBounds(), {padding: [50, 50]});
+        
+        // Mostrar panel de navegación después de 2 segundos (simulando búsqueda)
+        setTimeout(() => {
+            document.querySelector('.nav-panel').classList.add('visible');
+        }, 2000);
+        
+        // Mostrar notificación después de 4 segundos
+        setTimeout(() => {
+            document.querySelector('.notification').classList.add('visible');
+        }, 4000);
+        
+        // Cerrar notificación
+        document.querySelector('.close-notification').addEventListener('click', () => {
+            document.querySelector('.notification').classList.remove('visible');
+        });
+        
+        // Cerrar panel de navegación
+        document.querySelector('.close-btn').addEventListener('click', () => {
+            document.querySelector('.nav-panel').classList.remove('visible');
+        });
+        
+        // Centrar mapa en la ubicación del usuario
+        document.querySelector('.location-btn').addEventListener('click', () => {
+            map.setView([40.4168, -3.7038], 15);
+        });
+        
+        // Actualizar hora cada minuto
+        function updateTime() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.querySelector('.time').textContent = `${hours}:${minutes}`;
+        }
+        
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // Navegación a la pantalla de búsqueda
+        document.getElementById('searchBar').addEventListener('click', function() {
+            window.location.href = 'busqueda.html';
+        });
+        
+        document.getElementById('searchMenuItem').addEventListener('click', function() {
+            window.location.href = 'busqueda.html';
+        });
+    </script>
+</body>
+  </html>
