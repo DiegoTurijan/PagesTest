@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interfaz Waze Minimalista</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" xintegrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         /* Estilos generales para asegurar que el mapa ocupe toda la pantalla y la fuente Inter */
@@ -15,8 +16,9 @@
         .leaflet-control-attribution a { color: #0078A8 !important; }
         /* Estilos para los popups de Leaflet */
         .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: white; box-shadow: 0 3px 14px rgba(0,0,0,0.4); border-radius: 8px; }
-        /* Estilos para las notificaciones y el indicador de carga del mapa */
-        #notification, #map-loading-indicator {
+        
+        /* Estilos para la notificación inferior */
+        #notification {
             position: fixed;
             bottom: 20px;
             left: 50%;
@@ -30,8 +32,54 @@
             transition: opacity 0.5s ease-in-out;
             pointer-events: none; /* Permite clics a través del elemento cuando no es visible */
         }
-        /* Clase para mostrar las notificaciones/indicador de carga */
-        #notification.show, #map-loading-indicator.show { opacity: 1; }
+        #notification.show { opacity: 1; }
+
+        /* Estilos para el indicador de carga de ruta (el que ya existía, ahora con nombre más claro) */
+        #route-loading-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: none;
+        }
+        #route-loading-indicator.show { opacity: 1; }
+        /* Animación para los puntos suspensivos del indicador de carga de ruta */
+        #route-loading-indicator::after {
+            content: '...';
+            animation: dots 1s steps(3, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% {
+                color: rgba(255,255,255,0);
+                text-shadow:
+                    .25em 0 0 rgba(255,255,255,0),
+                    .5em 0 0 rgba(255,255,255,0);
+            }
+            40% {
+                color: white;
+                text-shadow:
+                    .25em 0 0 rgba(255,255,255,0),
+                    .5em 0 0 rgba(255,255,255,0);
+            }
+            60% {
+                text-shadow:
+                    .25em 0 0 white,
+                    .5em 0 0 rgba(255,255,255,0);
+            }
+            80%, 100% {
+                text-shadow:
+                    .25em 0 0 white,
+                    .5em 0 0 white;
+            }
+        }
+
         /* Estilos para el icono de destino (similar a un pin de Waze) */
         .destination-icon-div {
             width: 28px; height: 28px; background-color: #EF4444; border-radius: 50% 50% 50% 0;
@@ -49,6 +97,48 @@
             line-height: 20px; /* Ajustar según el tamaño */
             border: 2px solid white;
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        /* NUEVOS ESTILOS PARA LA PANTALLA DE CARGA INICIAL */
+        #full-screen-loading-overlay {
+            position: fixed;
+            inset: 0; /* Cubre toda la pantalla */
+            background-color: rgba(17, 24, 39, 0.9); /* gray-900 con opacidad */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 20000; /* Asegura que esté por encima de todo */
+            opacity: 0; /* Inicialmente oculto */
+            visibility: hidden; /* Oculto para accesibilidad y evitar interacciones */
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        #full-screen-loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Estilos para la barra de carga indeterminada */
+        .loading-bar-container {
+            width: 256px; /* w-64 */
+            height: 8px; /* h-2 */
+            background-color: #4B5563; /* gray-700 */
+            border-radius: 9999px; /* rounded-full */
+            overflow: hidden;
+            position: relative;
+        }
+        .loading-bar-inner {
+            position: absolute;
+            height: 100%;
+            width: 35%; /* Ancho del segmento que se mueve */
+            background-color: #3B82F6; /* blue-500 */
+            animation: indeterminate-loading 1.5s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+        }
+
+        @keyframes indeterminate-loading {
+            0% { left: -35%; right: 100%; }
+            60% { left: 100%; right: -90%; }
+            100% { left: 100%; right: -90%; }
         }
     </style>
 </head>
@@ -71,7 +161,14 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
         </button>
         <div id="notification"></div>
-        <div id="map-loading-indicator">Cargando...</div>
+        <div id="route-loading-indicator">Cargando</div> 
+    </div>
+
+    <div id="full-screen-loading-overlay">
+        <div class="text-white text-lg mb-4">Cargando la aplicación...</div>
+        <div class="loading-bar-container">
+            <div class="loading-bar-inner"></div>
+        </div>
     </div>
 
     <script>
@@ -87,22 +184,39 @@
         const SEARCH_PAGE_URL = 'search_screen.html'; // URL de la pantalla de búsqueda (asumida)
         // URL del script de Google Apps Script para obtener datos de rutas
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
-        const mapLoadingIndicator = document.getElementById('map-loading-indicator');
+        
+        // Referencias a los elementos de carga
+        const routeLoadingIndicator = document.getElementById('route-loading-indicator'); // Indicador para carga de ruta específica
+        const fullScreenLoadingOverlay = document.getElementById('full-screen-loading-overlay'); // Nueva pantalla de carga inicial
 
         /**
-         * Muestra un indicador de carga en el mapa.
+         * Muestra el indicador de carga específico para rutas.
          * @param {string} message - Mensaje a mostrar en el indicador.
          */
-        function showMapLoading(message = "Cargando datos en el mapa...") {
-            mapLoadingIndicator.textContent = message;
-            mapLoadingIndicator.classList.add('show');
+        function showRouteLoading(message = "Cargando datos en el mapa...") {
+            routeLoadingIndicator.textContent = message;
+            routeLoadingIndicator.classList.add('show');
         }
 
         /**
-         * Oculta el indicador de carga del mapa.
+         * Oculta el indicador de carga específico para rutas.
          */
-        function hideMapLoading() {
-            mapLoadingIndicator.classList.remove('show');
+        function hideRouteLoading() {
+            routeLoadingIndicator.classList.remove('show');
+        }
+
+        /**
+         * Muestra la pantalla de carga de pantalla completa.
+         */
+        function showFullScreenLoading() {
+            fullScreenLoadingOverlay.classList.add('show');
+        }
+
+        /**
+         * Oculta la pantalla de carga de pantalla completa.
+         */
+        function hideFullScreenLoading() {
+            fullScreenLoadingOverlay.classList.remove('show');
         }
 
         /**
@@ -142,6 +256,7 @@
             } catch (error) {
                 console.error("Error al inicializar el mapa:", error);
                 showNotification("Error al cargar el mapa.", 5000);
+                hideFullScreenLoading(); // Oculta la pantalla de carga si hay un error crítico al inicio
             }
         }
 
@@ -245,7 +360,7 @@
         async function loadAndDrawGoogleSheetRoute(routeName) {
             clearMapLayers(); // Limpia cualquier capa previa en el mapa
             document.getElementById('search-input').value = `Ruta: ${routeName}`;
-            showMapLoading(`Cargando ruta '${routeName}' desde Google Sheets...`);
+            showRouteLoading(`Cargando ruta '${routeName}' desde Google Sheets`); // Muestra el indicador de carga de ruta
 
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?ruta=${encodeURIComponent(routeName)}`);
@@ -295,10 +410,7 @@
                 showNotification(`Error al cargar ruta '${routeName}': ${error.message}`, 5000);
                 document.getElementById('search-input').value = `Error cargando: ${routeName}`;
             } finally {
-                hideMapLoading();
-                // Limpia el parámetro de la URL para evitar recargas repetidas
-                const newUrl = window.location.pathname;
-                window.history.replaceState({}, document.title, newUrl);
+                hideRouteLoading(); // Oculta el indicador de carga de ruta
             }
         }
 
@@ -345,6 +457,7 @@
 
         /**
          * Procesa los parámetros de la URL para cargar una ruta o un destino puntual.
+         * Esta función es el punto final de la carga inicial de la aplicación.
          */
         function processUrlParameters() {
             const params = new URLSearchParams(window.location.search);
@@ -372,6 +485,7 @@
                     } catch (e) { console.error("Error al restaurar vista de mapa:", e); }
                 }
             }
+            hideFullScreenLoading(); // Oculta la pantalla de carga inicial una vez que todo se ha procesado
         }
 
         /**
@@ -386,6 +500,7 @@
 
         // Event listener que se dispara cuando el DOM está completamente cargado
         document.addEventListener('DOMContentLoaded', () => {
+            showFullScreenLoading(); // Muestra la pantalla de carga completa inmediatamente
             initMap(); // Inicializa el mapa y comienza el proceso de ubicación/parámetros
 
             const goButton = document.getElementById('go-button');
