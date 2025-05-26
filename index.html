@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-T">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interfaz Waze Minimalista</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" xintegrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
+        /* Estilos generales para asegurar que el mapa ocupe toda la pantalla y la fuente Inter */
         html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; overflow: hidden; }
         #map { height: 100%; width: 100%; z-index: 0; }
+        /* Estilos para el control de atribución de Leaflet */
         .leaflet-control-attribution a { color: #0078A8 !important; }
+        /* Estilos para los popups de Leaflet */
         .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: white; box-shadow: 0 3px 14px rgba(0,0,0,0.4); border-radius: 8px; }
+        /* Estilos para las notificaciones y el indicador de carga del mapa */
         #notification, #map-loading-indicator {
             position: fixed;
             bottom: 20px;
@@ -25,15 +28,18 @@
             z-index: 10000;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
+            pointer-events: none; /* Permite clics a través del elemento cuando no es visible */
         }
+        /* Clase para mostrar las notificaciones/indicador de carga */
         #notification.show, #map-loading-indicator.show { opacity: 1; }
+        /* Estilos para el icono de destino (similar a un pin de Waze) */
         .destination-icon-div {
             width: 28px; height: 28px; background-color: #EF4444; border-radius: 50% 50% 50% 0;
             transform: rotate(-45deg); display: flex; align-items: center; justify-content: center;
             box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
         }
         .destination-icon-div i { transform: rotate(45deg); color: white; font-size: 14px; }
+        /* Estilos para los marcadores de inicio y fin de ruta de Google Sheets */
         .route-marker-icon {
             background-color: #10B981; /* emerald-500 */
             color: white;
@@ -69,26 +75,41 @@
     </div>
 
     <script>
+        // Coordenadas por defecto para Puebla (si no se puede obtener la ubicación del usuario)
         const PUEBLA_LAT = 19.0414;
         const PUEBLA_LNG = -98.2063;
-        let map;
-        let userMarker;
-        let destinationMarker; // Para destinos puntuales
-        let currentRoutePolyline; // Para rutas de Google Sheets
-        let routeStartMarker, routeEndMarker; // Marcadores para inicio/fin de ruta de Sheets
+        let map; // Instancia del mapa Leaflet
+        let userMarker; // Marcador de la ubicación del usuario
+        let destinationMarker; // Marcador para destinos puntuales
+        let currentRoutePolyline; // Polilínea para rutas cargadas desde Google Sheets
+        let routeStartMarker, routeEndMarker; // Marcadores para el inicio y fin de una ruta de Sheets
 
-        const SEARCH_PAGE_URL = 'search_screen.html';
+        const SEARCH_PAGE_URL = 'search_screen.html'; // URL de la pantalla de búsqueda (asumida)
+        // URL del script de Google Apps Script para obtener datos de rutas
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
         const mapLoadingIndicator = document.getElementById('map-loading-indicator');
 
+        /**
+         * Muestra un indicador de carga en el mapa.
+         * @param {string} message - Mensaje a mostrar en el indicador.
+         */
         function showMapLoading(message = "Cargando datos en el mapa...") {
             mapLoadingIndicator.textContent = message;
             mapLoadingIndicator.classList.add('show');
         }
+
+        /**
+         * Oculta el indicador de carga del mapa.
+         */
         function hideMapLoading() {
             mapLoadingIndicator.classList.remove('show');
         }
 
+        /**
+         * Muestra una notificación temporal en la parte inferior de la pantalla.
+         * @param {string} message - Mensaje a mostrar en la notificación.
+         * @param {number} duration - Duración en milisegundos que la notificación estará visible.
+         */
         function showNotification(message, duration = 3000) {
             const notificationElement = document.getElementById('notification');
             notificationElement.textContent = message;
@@ -98,17 +119,24 @@
             }, duration);
         }
 
+        /**
+         * Inicializa el mapa Leaflet, lo centra en Puebla y añade el tile layer.
+         * Luego, intenta obtener la ubicación del usuario.
+         */
         function initMap() {
             try {
+                // Crea el mapa y lo centra en Puebla con un zoom inicial
                 map = L.map('map', { zoomControl: false }).setView([PUEBLA_LAT, PUEBLA_LNG], 13);
+                // Añade el tile layer de OpenStreetMap
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
                     maxZoom: 19,
                 }).addTo(map);
+                // Añade el control de zoom en la esquina inferior derecha
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
                 
                 showNotification("Mapa inicializado.", 2000);
-                // El procesamiento de destino/ruta se hará después de obtener la ubicación del usuario
+                // Después de inicializar el mapa, intenta obtener la ubicación del usuario
                 simulateUserLocation();
 
             } catch (error) {
@@ -117,53 +145,105 @@
             }
         }
 
+        /**
+         * Intenta obtener la ubicación actual del usuario. Si tiene éxito, actualiza el mapa y el marcador.
+         * Si falla, establece una ubicación por defecto.
+         * Después de obtener la ubicación, procesa los parámetros de la URL.
+         */
         function simulateUserLocation() {
-            // ... (código de simulateUserLocation y setDefaultUserLocation se mantiene igual)
-            // PERO, al final de obtener la ubicación (o la de por defecto), llamamos a una función que decida qué procesar:
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(position => {
                     const userLat = position.coords.latitude;
                     const userLng = position.coords.longitude;
-                    map.setView([userLat, userLng], 15);
-                    if (userMarker) userMarker.setLatLng([userLat, userLng]);
-                    else {
+                    map.setView([userLat, userLng], 15); // Centra el mapa en la ubicación del usuario
+                    if (userMarker) {
+                        userMarker.setLatLng([userLat, userLng]); // Actualiza la posición del marcador
+                    } else {
+                         // Crea un icono personalizado para el marcador del usuario
                          const userIcon = L.divIcon({html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>', className: '', iconSize: [16,16], iconAnchor: [8,8]});
                          userMarker = L.marker([userLat, userLng], {icon: userIcon}).addTo(map).bindPopup("<b>¡Estás aquí!</b>").openPopup();
                     }
                     showNotification("Ubicación actual obtenida.", 2000);
-                    processUrlParameters(); // Llama a la función que decide qué cargar
+                    processUrlParameters(); // Procesa parámetros de URL después de obtener la ubicación
                 }, () => {
-                    setDefaultUserLocation();
+                    setDefaultUserLocation(); // Si falla, usa la ubicación por defecto
                     showNotification("No se pudo obtener la ubicación.", 3000);
                     processUrlParameters();
                 });
             } else {
-                setDefaultUserLocation();
+                setDefaultUserLocation(); // Si la geolocalización no es soportada
                 showNotification("Geolocalización no soportada.", 3000);
                 processUrlParameters();
             }
         }
         
+        /**
+         * Establece la ubicación del usuario en las coordenadas de Puebla por defecto.
+         */
         function setDefaultUserLocation() {
-            if (userMarker) userMarker.setLatLng([PUEBLA_LAT, PUEBLA_LNG]);
-            else {
+            if (userMarker) {
+                userMarker.setLatLng([PUEBLA_LAT, PUEBLA_LNG]);
+            } else {
                 const userIcon = L.divIcon({html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>', className: '', iconSize: [16,16], iconAnchor: [8,8]});
                 userMarker = L.marker([PUEBLA_LAT, PUEBLA_LNG], {icon: userIcon}).addTo(map).bindPopup("<b>Ubicación por defecto</b>").openPopup();
             }
+            // Si la vista actual del mapa no contiene la ubicación por defecto, la centra
             if (!map.getBounds().contains(L.latLng(PUEBLA_LAT, PUEBLA_LNG))) {
                  map.setView([PUEBLA_LAT, PUEBLA_LNG], 13);
             }
         }
 
-        function clearMapLayers() { // Función para limpiar capas previas
+        /**
+         * Limpia todas las capas de marcadores y polilíneas de rutas previas en el mapa.
+         */
+        function clearMapLayers() {
             if (destinationMarker) map.removeLayer(destinationMarker);
             if (currentRoutePolyline) map.removeLayer(currentRoutePolyline);
             if (routeStartMarker) map.removeLayer(routeStartMarker);
             if (routeEndMarker) map.removeLayer(routeEndMarker);
         }
 
+        /**
+         * Función para parsear una cadena de coordenada con formato especial (ej. "190.683.457" a 19.0683457).
+         * Asume que el punto decimal debe ir después de los primeros dos dígitos (o tres si es negativo,
+         * considerando el signo).
+         * @param {string} coordString - La cadena de coordenada a parsear.
+         * @returns {number} La coordenada parseada como un número flotante.
+         */
+        function parseCoordinate(coordString) {
+            // Elimina todos los puntos (asumiendo que son separadores de miles o extra)
+            let cleanedString = String(coordString).replace(/\./g, '');
+
+            // Verifica si es un número negativo
+            const isNegative = cleanedString.startsWith('-');
+            if (isNegative) {
+                cleanedString = cleanedString.substring(1); // Remueve el signo para el procesamiento
+            }
+
+            // Asume que el punto decimal debe ir después de los primeros dos dígitos del número limpio.
+            // Esto es crucial para corregir el formato "190683457" a "19.0683457".
+            if (cleanedString.length < 3) {
+                console.warn("Cadena de coordenada demasiado corta para el formato asumido:", coordString);
+                return parseFloat(coordString.replace(',', '.')); // Fallback si es muy corta
+            }
+
+            // Inserta el punto decimal y parsea a flotante
+            let parsedValue = parseFloat(cleanedString.slice(0, 2) + '.' + cleanedString.slice(2));
+
+            // Aplica el signo si el número original era negativo
+            if (isNegative) {
+                parsedValue = -parsedValue;
+            }
+
+            return parsedValue;
+        }
+
+        /**
+         * Carga y dibuja una ruta desde Google Sheets usando el nombre de la ruta.
+         * @param {string} routeName - El nombre de la ruta a cargar.
+         */
         async function loadAndDrawGoogleSheetRoute(routeName) {
-            clearMapLayers();
+            clearMapLayers(); // Limpia cualquier capa previa en el mapa
             document.getElementById('search-input').value = `Ruta: ${routeName}`;
             showMapLoading(`Cargando ruta '${routeName}' desde Google Sheets...`);
 
@@ -180,25 +260,28 @@
                     throw new Error("No se recibieron coordenadas o el formato es incorrecto.");
                 }
 
+                // Mapea los datos de coordenadas, usando la nueva función parseCoordinate
                 const latLngs = coordinatesData.map(coord => {
-                    const lat = parseFloat(coord.lat);
-                    const lng = parseFloat(coord.lng);
+                    const lat = parseCoordinate(coord.lat); // Usa la función corregida
+                    const lng = parseCoordinate(coord.lng); // Usa la función corregida
                     if (isNaN(lat) || isNaN(lng)) {
                         console.warn("Coordenada inválida encontrada y omitida:", coord);
                         return null;
                     }
                     return [lat, lng];
-                }).filter(c => c !== null); // Filtrar nulos si alguna coordenada era inválida
+                }).filter(c => c !== null); // Filtra cualquier coordenada que haya resultado inválida
 
 
                 if (latLngs.length < 2) {
                      throw new Error("Se necesitan al menos dos puntos válidos para trazar una ruta.");
                 }
 
+                // Dibuja la polilínea de la ruta
                 currentRoutePolyline = L.polyline(latLngs, { color: '#D97706', weight: 5, opacity: 0.9 }).addTo(map);
+                // Ajusta la vista del mapa para que la ruta completa sea visible
                 map.fitBounds(currentRoutePolyline.getBounds().pad(0.1));
 
-                // Marcadores de inicio y fin
+                // Crea y añade marcadores para el inicio y el fin de la ruta
                 const startIcon = L.divIcon({className: 'route-marker-icon', html: 'A', iconSize: [20, 20]});
                 const endIcon = L.divIcon({className: 'route-marker-icon', html: 'B', iconSize: [20, 20]});
 
@@ -213,47 +296,56 @@
                 document.getElementById('search-input').value = `Error cargando: ${routeName}`;
             } finally {
                 hideMapLoading();
-                // Limpiar parámetro de la URL
+                // Limpia el parámetro de la URL para evitar recargas repetidas
                 const newUrl = window.location.pathname;
                 window.history.replaceState({}, document.title, newUrl);
             }
         }
 
+        /**
+         * Procesa un destino puntual y lo muestra en el mapa.
+         * @param {object} destination - Objeto con los detalles del destino (name, lat, lng, address).
+         */
         function processPointDestination(destination) {
-            clearMapLayers();
+            clearMapLayers(); // Limpia capas previas
             document.getElementById('search-input').value = destination.name;
             let destLat, destLng;
 
-            if (destination.lat && destination.lng && !isNaN(parseFloat(destination.lat)) && !isNaN(parseFloat(destination.lng))) {
-                destLat = parseFloat(destination.lat);
-                destLng = parseFloat(destination.lng);
-            } else {
+            // Usa la nueva función parseCoordinate para las coordenadas del destino
+            destLat = parseCoordinate(destination.lat);
+            destLng = parseCoordinate(destination.lng);
+
+            if (isNaN(destLat) || isNaN(destLng)) {
                 showNotification(`Destino: ${destination.name} (sin coordenadas válidas).`, 3000);
                 return;
             }
             
             const destinationLatLng = L.latLng(destLat, destLng);
+            // Crea un icono personalizado para el marcador de destino
             const destIcon = L.divIcon({ html: '<div class="destination-icon-div"><i class="fas fa-map-marker-alt"></i></div>', className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
             destinationMarker = L.marker(destinationLatLng, { icon: destIcon })
                 .addTo(map)
                 .bindPopup(`<b>Destino:</b><br>${destination.name}${destination.address ? '<br><small>' + destination.address + '</small>' : ''}`)
                 .openPopup();
 
-            // Simular ruta al destino puntual si hay ubicación de usuario
+            // Simula una ruta desde la ubicación del usuario al destino puntual
             if (userMarker) {
                  const userLatLng = userMarker.getLatLng();
                  currentRoutePolyline = L.polyline([userLatLng, destinationLatLng], { color: '#3B82F6', weight: 6, opacity: 0.8, dashArray: '5, 5' }).addTo(map);
                  map.fitBounds(L.latLngBounds([userLatLng, destinationLatLng]).pad(0.2));
                  showNotification(`Ruta simulada a ${destination.name} trazada.`, 2000);
             } else {
-                map.setView(destinationLatLng, 15); // Centrar en el destino si no hay ruta
+                map.setView(destinationLatLng, 15); // Centra en el destino si no hay ruta de usuario
             }
-            // Limpiar parámetro de la URL
+            // Limpia el parámetro de la URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
 
 
+        /**
+         * Procesa los parámetros de la URL para cargar una ruta o un destino puntual.
+         */
         function processUrlParameters() {
             const params = new URLSearchParams(window.location.search);
             const routeNameParam = params.get('routeName');
@@ -270,47 +362,54 @@
                     showNotification("Error al leer datos del destino.", 3000);
                 }
             } else {
-                // No hay parámetros de ruta o destino, restaurar vista si existe
+                // Si no hay parámetros de ruta o destino, intenta restaurar la última vista del mapa
                 const lastView = localStorage.getItem('mapLastView');
                 if(lastView){
                     try {
                         const view = JSON.parse(lastView);
                         map.setView([view.lat, view.lng], view.zoom);
-                        localStorage.removeItem('mapLastView');
+                        localStorage.removeItem('mapLastView'); // Limpia la vista guardada
                     } catch (e) { console.error("Error al restaurar vista de mapa:", e); }
                 }
             }
         }
 
+        /**
+         * Redirige a la pantalla de búsqueda, guardando la vista actual del mapa.
+         */
         function redirectToSearchScreen() {
-            // ... (código de redirectToSearchScreen se mantiene igual)
             const currentCenter = map.getCenter();
             const currentZoom = map.getZoom();
             localStorage.setItem('mapLastView', JSON.stringify({ lat: currentCenter.lat, lng: currentCenter.lng, zoom: currentZoom }));
             window.location.href = SEARCH_PAGE_URL;
         }
 
+        // Event listener que se dispara cuando el DOM está completamente cargado
         document.addEventListener('DOMContentLoaded', () => {
-            initMap(); // initMap ahora llama a simulateUserLocation, que luego llama a processUrlParameters
+            initMap(); // Inicializa el mapa y comienza el proceso de ubicación/parámetros
 
             const goButton = document.getElementById('go-button');
-            const searchInput = document.getElementById('search-input'); // El input en sí
+            const searchInput = document.getElementById('search-input');
             const centerLocationButton = document.getElementById('center-location-button');
 
+            // Asigna eventos de clic para redirigir a la pantalla de búsqueda
             goButton.addEventListener('click', redirectToSearchScreen);
-            searchInput.addEventListener('click', redirectToSearchScreen); // Al hacer clic en el input
-            searchInput.addEventListener('keypress', (e) => { e.preventDefault(); }); // Prevenir escritura
+            searchInput.addEventListener('click', redirectToSearchScreen);
+            // Previene la escritura directa en el input de búsqueda
+            searchInput.addEventListener('keypress', (e) => { e.preventDefault(); });
 
+            // Evento para centrar el mapa en la ubicación del usuario
             centerLocationButton.addEventListener('click', () => {
                 if (userMarker) {
                     map.setView(userMarker.getLatLng(), 15);
                     userMarker.openPopup();
                     showNotification("Mapa centrado en tu ubicación.", 2000);
                 } else {
-                    simulateUserLocation(); // Intentar obtener ubicación de nuevo
+                    simulateUserLocation(); // Si no hay marcador de usuario, intenta obtener la ubicación de nuevo
                 }
             });
 
+            // Invalida el tamaño del mapa cuando la ventana cambia de tamaño para asegurar que se ajuste
             window.addEventListener('resize', () => {
                 if (map) { map.invalidateSize(); }
             });
