@@ -5,18 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Interfaz Waze Minimalista</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxTlZBo=" crossorigin=""></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" xintegrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+    <!-- Leaflet CSS (sin integrity ni crossorigin) -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    />
+
+    <!-- Font Awesome (se corrigió “xintegrity” y se eliminó integrity/crossorigin) -->
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+        referrerpolicy="no-referrer"
+    />
+
     <style>
         /* Estilos generales para asegurar que el mapa ocupe toda la pantalla y la fuente Inter */
-        html, body { height: 100%; margin: 0; font-family: 'Inter', sans-serif; overflow: hidden; }
-        #map { height: 100%; width: 100%; z-index: 0; }
+        html, body {
+            height: 100%;
+            margin: 0;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 0;
+        }
         /* Estilos para el control de atribución de Leaflet */
-        .leaflet-control-attribution a { color: #0078A8 !important; }
+        .leaflet-control-attribution a {
+            color: #0078A8 !important;
+        }
         /* Estilos para los popups de Leaflet */
-        .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: white; box-shadow: 0 3px 14px rgba(0,0,0,0.4); border-radius: 8px; }
-        
+        .leaflet-popup-content-wrapper,
+        .leaflet-popup-tip {
+            background: white;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
+            border-radius: 8px;
+        }
+
         /* Estilos para la notificación inferior */
         #notification {
             position: fixed;
@@ -30,11 +57,13 @@
             z-index: 10000;
             opacity: 0;
             transition: opacity 0.5s ease-in-out;
-            pointer-events: none; /* Permite clics a través del elemento cuando no es visible */
+            pointer-events: none;
         }
-        #notification.show { opacity: 1; }
+        #notification.show {
+            opacity: 1;
+        }
 
-        /* Estilos para el indicador de carga de ruta (el que ya existía, ahora con nombre más claro) */
+        /* Estilos para el indicador de carga de ruta */
         #route-loading-indicator {
             position: fixed;
             bottom: 20px;
@@ -49,7 +78,9 @@
             transition: opacity 0.5s ease-in-out;
             pointer-events: none;
         }
-        #route-loading-indicator.show { opacity: 1; }
+        #route-loading-indicator.show {
+            opacity: 1;
+        }
         /* Animación para los puntos suspensivos del indicador de carga de ruta */
         #route-loading-indicator::after {
             content: '...';
@@ -58,35 +89,39 @@
         @keyframes dots {
             0%, 20% {
                 color: rgba(255,255,255,0);
-                text-shadow:
-                    .25em 0 0 rgba(255,255,255,0),
-                    .5em 0 0 rgba(255,255,255,0);
+                text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0);
             }
             40% {
                 color: white;
-                text-shadow:
-                    .25em 0 0 rgba(255,255,255,0),
-                    .5em 0 0 rgba(255,255,255,0);
+                text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0);
             }
             60% {
-                text-shadow:
-                    .25em 0 0 white,
-                    .5em 0 0 rgba(255,255,255,0);
+                text-shadow: .25em 0 0 white, .5em 0 0 rgba(255,255,255,0);
             }
             80%, 100% {
-                text-shadow:
-                    .25em 0 0 white,
-                    .5em 0 0 white;
+                text-shadow: .25em 0 0 white, .5em 0 0 white;
             }
         }
 
         /* Estilos para el icono de destino (similar a un pin de Waze) */
         .destination-icon-div {
-            width: 28px; height: 28px; background-color: #EF4444; border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg); display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 2px solid white;
+            width: 28px;
+            height: 28px;
+            background-color: #EF4444;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            border: 2px solid white;
         }
-        .destination-icon-div i { transform: rotate(45deg); color: white; font-size: 14px; }
+        .destination-icon-div i {
+            transform: rotate(45deg);
+            color: white;
+            font-size: 14px;
+        }
+
         /* Estilos para los marcadores de inicio y fin de ruta de Google Sheets */
         .route-marker-icon {
             background-color: #10B981; /* emerald-500 */
@@ -99,7 +134,7 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.2);
         }
 
-        /* NUEVOS ESTILOS PARA LA PANTALLA DE CARGA INICIAL */
+        /* ESTILOS PARA LA PANTALLA DE CARGA INICIAL */
         #full-screen-loading-overlay {
             position: fixed;
             inset: 0; /* Cubre toda la pantalla */
@@ -121,9 +156,9 @@
         /* Estilos para la barra de carga indeterminada */
         .loading-bar-container {
             width: 256px; /* w-64 */
-            height: 8px; /* h-2 */
+            height: 8px;   /* h-2 */
             background-color: #4B5563; /* gray-700 */
-            border-radius: 9999px; /* rounded-full */
+            border-radius: 9999px;     /* rounded-full */
             overflow: hidden;
             position: relative;
         }
@@ -134,10 +169,9 @@
             background-color: #3B82F6; /* blue-500 */
             animation: indeterminate-loading 1.5s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
         }
-
         @keyframes indeterminate-loading {
-            0% { left: -35%; right: 100%; }
-            60% { left: 100%; right: -90%; }
+            0%   { left: -35%; right: 100%; }
+            60%  { left: 100%; right: -90%; }
             100% { left: 100%; right: -90%; }
         }
     </style>
@@ -156,12 +190,21 @@
                 </button>
             </div>
         </div>
+
         <div id="map" class="flex-grow"></div>
-        <button id="center-location-button" title="Mi Ubicación" class="absolute bottom-28 right-4 z-10 bg-white p-3 rounded-full shadow-xl hover:bg-gray-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-600"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="3"></circle></svg>
+
+        <button id="center-location-button" title="Mi Ubicación"
+                class="absolute bottom-28 right-4 z-10 bg-white p-3 rounded-full shadow-xl hover:bg-gray-100 transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 class="text-blue-600">
+                <circle cx="12" cy="12" r="10"></circle>
+                <circle cx="12" cy="12" r="3"></circle>
+            </svg>
         </button>
+
         <div id="notification"></div>
-        <div id="route-loading-indicator">Cargando</div> 
+        <div id="route-loading-indicator">Cargando</div>
     </div>
 
     <div id="full-screen-loading-overlay">
@@ -171,6 +214,8 @@
         </div>
     </div>
 
+    <!-- Leaflet JS (sin integrity ni crossorigin) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
         // Coordenadas por defecto para Puebla (si no se puede obtener la ubicación del usuario)
         const PUEBLA_LAT = 19.0414;
@@ -186,8 +231,8 @@
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
         
         // Referencias a los elementos de carga
-        const routeLoadingIndicator = document.getElementById('route-loading-indicator'); // Indicador para carga de ruta específica
-        const fullScreenLoadingOverlay = document.getElementById('full-screen-loading-overlay'); // Nueva pantalla de carga inicial
+        const routeLoadingIndicator = document.getElementById('route-loading-indicator');
+        const fullScreenLoadingOverlay = document.getElementById('full-screen-loading-overlay');
 
         /**
          * Muestra el indicador de carga específico para rutas.
@@ -213,10 +258,16 @@
         }
 
         /**
-         * Oculta la pantalla de carga de pantalla completa.
+         * Oculta la pantalla de carga de pantalla completa y asegura que el mapa se redimensione.
          */
         function hideFullScreenLoading() {
             fullScreenLoadingOverlay.classList.remove('show');
+            // Espera a que la transición de ocultamiento termine antes de invalidar el tamaño del mapa
+            setTimeout(() => {
+                if (map) {
+                    map.invalidateSize(); // Fuerza a Leaflet a recalcular el tamaño del mapa
+                }
+            }, 300); // Coincide con la duración de la transición CSS (0.3s)
         }
 
         /**
@@ -236,6 +287,7 @@
         /**
          * Inicializa el mapa Leaflet, lo centra en Puebla y añade el tile layer.
          * Luego, intenta obtener la ubicación del usuario.
+         * La pantalla de carga completa se oculta una vez que el mapa está listo.
          */
         function initMap() {
             try {
@@ -250,13 +302,11 @@
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
                 
                 showNotification("Mapa inicializado.", 2000);
-                // Después de inicializar el mapa, intenta obtener la ubicación del usuario
-                simulateUserLocation();
-
+                simulateUserLocation(); // Continúa con la lógica de la aplicación
             } catch (error) {
                 console.error("Error al inicializar el mapa:", error);
-                showNotification("Error al cargar el mapa.", 5000);
-                hideFullScreenLoading(); // Oculta la pantalla de carga si hay un error crítico al inicio
+                showNotification("Error al cargar el mapa. Por favor, recarga la página.", 5000);
+                hideFullScreenLoading(); // Asegura que la pantalla de carga se oculte incluso si hay un error
             }
         }
 
@@ -275,8 +325,16 @@
                         userMarker.setLatLng([userLat, userLng]); // Actualiza la posición del marcador
                     } else {
                          // Crea un icono personalizado para el marcador del usuario
-                         const userIcon = L.divIcon({html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>', className: '', iconSize: [16,16], iconAnchor: [8,8]});
-                         userMarker = L.marker([userLat, userLng], {icon: userIcon}).addTo(map).bindPopup("<b>¡Estás aquí!</b>").openPopup();
+                         const userIcon = L.divIcon({
+                             html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>',
+                             className: '',
+                             iconSize: [16,16],
+                             iconAnchor: [8,8]
+                         });
+                         userMarker = L.marker([userLat, userLng], {icon: userIcon})
+                                        .addTo(map)
+                                        .bindPopup("<b>¡Estás aquí!</b>")
+                                        .openPopup();
                     }
                     showNotification("Ubicación actual obtenida.", 2000);
                     processUrlParameters(); // Procesa parámetros de URL después de obtener la ubicación
@@ -299,8 +357,16 @@
             if (userMarker) {
                 userMarker.setLatLng([PUEBLA_LAT, PUEBLA_LNG]);
             } else {
-                const userIcon = L.divIcon({html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>', className: '', iconSize: [16,16], iconAnchor: [8,8]});
-                userMarker = L.marker([PUEBLA_LAT, PUEBLA_LNG], {icon: userIcon}).addTo(map).bindPopup("<b>Ubicación por defecto</b>").openPopup();
+                const userIcon = L.divIcon({
+                    html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>',
+                    className: '',
+                    iconSize: [16,16],
+                    iconAnchor: [8,8]
+                });
+                userMarker = L.marker([PUEBLA_LAT, PUEBLA_LNG], {icon: userIcon})
+                                .addTo(map)
+                                .bindPopup("<b>Ubicación por defecto</b>")
+                                .openPopup();
             }
             // Si la vista actual del mapa no contiene la ubicación por defecto, la centra
             if (!map.getBounds().contains(L.latLng(PUEBLA_LAT, PUEBLA_LNG))) {
@@ -319,33 +385,30 @@
         }
 
         /**
-         * Función para parsear una cadena de coordenada con formato especial (ej. "190.683.457" a 19.0683457).
-         * Asume que el punto decimal debe ir después de los primeros dos dígitos (o tres si es negativo,
-         * considerando el signo).
-         * @param {string} coordString - La cadena de coordenada a parsear.
-         * @returns {number} La coordenada parseada como un número flotante.
+         * Función para parsear una cadena de coordenada con formato especial
+         * (ej. "190.683.457" a 19.0683457).
          */
         function parseCoordinate(coordString) {
-            // Elimina todos los puntos (asumiendo que son separadores de miles o extra)
+            // Elimina todos los puntos
             let cleanedString = String(coordString).replace(/\./g, '');
 
             // Verifica si es un número negativo
             const isNegative = cleanedString.startsWith('-');
             if (isNegative) {
-                cleanedString = cleanedString.substring(1); // Remueve el signo para el procesamiento
+                cleanedString = cleanedString.substring(1);
             }
 
-            // Asume que el punto decimal debe ir después de los primeros dos dígitos del número limpio.
-            // Esto es crucial para corregir el formato "190683457" a "19.0683457".
+            // Requiere al menos 3 dígitos para insertar el punto decimal
             if (cleanedString.length < 3) {
                 console.warn("Cadena de coordenada demasiado corta para el formato asumido:", coordString);
-                return parseFloat(coordString.replace(',', '.')); // Fallback si es muy corta
+                return parseFloat(coordString.replace(',', '.')); // Fallback
             }
 
-            // Inserta el punto decimal y parsea a flotante
-            let parsedValue = parseFloat(cleanedString.slice(0, 2) + '.' + cleanedString.slice(2));
+            // Inserta el punto decimal
+            let parsedValue = parseFloat(
+                cleanedString.slice(0, 2) + '.' + cleanedString.slice(2)
+            );
 
-            // Aplica el signo si el número original era negativo
             if (isNegative) {
                 parsedValue = -parsedValue;
             }
@@ -355,12 +418,11 @@
 
         /**
          * Carga y dibuja una ruta desde Google Sheets usando el nombre de la ruta.
-         * @param {string} routeName - El nombre de la ruta a cargar.
          */
         async function loadAndDrawGoogleSheetRoute(routeName) {
-            clearMapLayers(); // Limpia cualquier capa previa en el mapa
+            clearMapLayers();
             document.getElementById('search-input').value = `Ruta: ${routeName}`;
-            showRouteLoading(`Cargando ruta '${routeName}' desde Google Sheets`); // Muestra el indicador de carga de ruta
+            showRouteLoading(`Cargando ruta '${routeName}' desde Google Sheets`);
 
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?ruta=${encodeURIComponent(routeName)}`);
@@ -375,66 +437,81 @@
                     throw new Error("No se recibieron coordenadas o el formato es incorrecto.");
                 }
 
-                // Mapea los datos de coordenadas, usando la nueva función parseCoordinate
+                // Mapea los datos de coordenadas
                 const latLngs = coordinatesData.map(coord => {
-                    const lat = parseCoordinate(coord.lat); // Usa la función corregida
-                    const lng = parseCoordinate(coord.lng); // Usa la función corregida
+                    const lat = parseCoordinate(coord.lat);
+                    const lng = parseCoordinate(coord.lng);
                     if (isNaN(lat) || isNaN(lng)) {
                         console.warn("Coordenada inválida encontrada y omitida:", coord);
                         return null;
                     }
                     return [lat, lng];
-                }).filter(c => c !== null); // Filtra cualquier coordenada que haya resultado inválida
-
+                }).filter(c => c !== null);
 
                 if (latLngs.length < 2) {
                      throw new Error("Se necesitan al menos dos puntos válidos para trazar una ruta.");
                 }
 
                 // Dibuja la polilínea de la ruta
-                currentRoutePolyline = L.polyline(latLngs, { color: '#D97706', weight: 5, opacity: 0.9 }).addTo(map);
-                // Ajusta la vista del mapa para que la ruta completa sea visible
+                currentRoutePolyline = L.polyline(latLngs, {
+                    color: '#D97706',
+                    weight: 5,
+                    opacity: 0.9
+                }).addTo(map);
                 map.fitBounds(currentRoutePolyline.getBounds().pad(0.1));
 
-                // Crea y añade marcadores para el inicio y el fin de la ruta
-                const startIcon = L.divIcon({className: 'route-marker-icon', html: 'A', iconSize: [20, 20]});
-                const endIcon = L.divIcon({className: 'route-marker-icon', html: 'B', iconSize: [20, 20]});
+                // Marcadores de inicio y fin
+                const startIcon = L.divIcon({
+                    className: 'route-marker-icon',
+                    html: 'A',
+                    iconSize: [20, 20]
+                });
+                const endIcon = L.divIcon({
+                    className: 'route-marker-icon',
+                    html: 'B',
+                    iconSize: [20, 20]
+                });
 
-                routeStartMarker = L.marker(latLngs[0], {icon: startIcon}).addTo(map).bindPopup(`Inicio: ${routeName}<br><small>${coordinatesData[0].fecha || ''}</small>`);
-                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: endIcon}).addTo(map).bindPopup(`Fin: ${routeName}<br><small>${coordinatesData[latLngs.length-1].fecha || ''}</small>`);
-                
+                routeStartMarker = L.marker(latLngs[0], {icon: startIcon})
+                                  .addTo(map)
+                                  .bindPopup(`Inicio: ${routeName}<br><small>${coordinatesData[0].fecha || ''}</small>`);
+                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: endIcon})
+                                .addTo(map)
+                                .bindPopup(`Fin: ${routeName}<br><small>${coordinatesData[latLngs.length-1].fecha || ''}</small>`);
+
                 showNotification(`Ruta '${routeName}' cargada correctamente.`, 3000);
-
             } catch (error) {
                 console.error(`Error loading Google Sheet route '${routeName}':`, error);
                 showNotification(`Error al cargar ruta '${routeName}': ${error.message}`, 5000);
                 document.getElementById('search-input').value = `Error cargando: ${routeName}`;
             } finally {
-                hideRouteLoading(); // Oculta el indicador de carga de ruta
+                hideRouteLoading();
             }
         }
 
         /**
          * Procesa un destino puntual y lo muestra en el mapa.
-         * @param {object} destination - Objeto con los detalles del destino (name, lat, lng, address).
          */
         function processPointDestination(destination) {
-            clearMapLayers(); // Limpia capas previas
+            clearMapLayers();
             document.getElementById('search-input').value = destination.name;
-            let destLat, destLng;
-
-            // Usa la nueva función parseCoordinate para las coordenadas del destino
-            destLat = parseCoordinate(destination.lat);
-            destLng = parseCoordinate(destination.lng);
+            let destLat = parseCoordinate(destination.lat);
+            let destLng = parseCoordinate(destination.lng);
 
             if (isNaN(destLat) || isNaN(destLng)) {
                 showNotification(`Destino: ${destination.name} (sin coordenadas válidas).`, 3000);
                 return;
             }
-            
+
             const destinationLatLng = L.latLng(destLat, destLng);
-            // Crea un icono personalizado para el marcador de destino
-            const destIcon = L.divIcon({ html: '<div class="destination-icon-div"><i class="fas fa-map-marker-alt"></i></div>', className: '', iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -28] });
+            // Crea un icono personalizado
+            const destIcon = L.divIcon({
+                html: '<div class="destination-icon-div"><i class="fas fa-map-marker-alt"></i></div>',
+                className: '',
+                iconSize: [28, 28],
+                iconAnchor: [14, 28],
+                popupAnchor: [0, -28]
+            });
             destinationMarker = L.marker(destinationLatLng, { icon: destIcon })
                 .addTo(map)
                 .bindPopup(`<b>Destino:</b><br>${destination.name}${destination.address ? '<br><small>' + destination.address + '</small>' : ''}`)
@@ -442,22 +519,26 @@
 
             // Simula una ruta desde la ubicación del usuario al destino puntual
             if (userMarker) {
-                 const userLatLng = userMarker.getLatLng();
-                 currentRoutePolyline = L.polyline([userLatLng, destinationLatLng], { color: '#3B82F6', weight: 6, opacity: 0.8, dashArray: '5, 5' }).addTo(map);
-                 map.fitBounds(L.latLngBounds([userLatLng, destinationLatLng]).pad(0.2));
-                 showNotification(`Ruta simulada a ${destination.name} trazada.`, 2000);
+                const userLatLng = userMarker.getLatLng();
+                currentRoutePolyline = L.polyline([userLatLng, destinationLatLng], {
+                    color: '#3B82F6',
+                    weight: 6,
+                    opacity: 0.8,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                map.fitBounds(L.latLngBounds([userLatLng, destinationLatLng]).pad(0.2));
+                showNotification(`Ruta simulada a ${destination.name} trazada.`, 2000);
             } else {
-                map.setView(destinationLatLng, 15); // Centra en el destino si no hay ruta de usuario
+                map.setView(destinationLatLng, 15);
             }
+
             // Limpia el parámetro de la URL
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
 
-
         /**
          * Procesa los parámetros de la URL para cargar una ruta o un destino puntual.
-         * Esta función es el punto final de la carga inicial de la aplicación.
          */
         function processUrlParameters() {
             const params = new URLSearchParams(window.location.search);
@@ -475,17 +556,19 @@
                     showNotification("Error al leer datos del destino.", 3000);
                 }
             } else {
-                // Si no hay parámetros de ruta o destino, intenta restaurar la última vista del mapa
+                // Si no hay parámetros, intenta restaurar la última vista del mapa
                 const lastView = localStorage.getItem('mapLastView');
-                if(lastView){
+                if (lastView) {
                     try {
                         const view = JSON.parse(lastView);
                         map.setView([view.lat, view.lng], view.zoom);
-                        localStorage.removeItem('mapLastView'); // Limpia la vista guardada
-                    } catch (e) { console.error("Error al restaurar vista de mapa:", e); }
+                        localStorage.removeItem('mapLastView');
+                    } catch (e) {
+                        console.error("Error al restaurar vista de mapa:", e);
+                    }
                 }
             }
-            hideFullScreenLoading(); // Oculta la pantalla de carga inicial una vez que todo se ha procesado
+            hideFullScreenLoading(); // Oculta la pantalla de carga inicial
         }
 
         /**
@@ -494,14 +577,18 @@
         function redirectToSearchScreen() {
             const currentCenter = map.getCenter();
             const currentZoom = map.getZoom();
-            localStorage.setItem('mapLastView', JSON.stringify({ lat: currentCenter.lat, lng: currentCenter.lng, zoom: currentZoom }));
+            localStorage.setItem('mapLastView', JSON.stringify({
+                lat: currentCenter.lat,
+                lng: currentCenter.lng,
+                zoom: currentZoom
+            }));
             window.location.href = SEARCH_PAGE_URL;
         }
 
-        // Event listener que se dispara cuando el DOM está completamente cargado
+        // Evento que se dispara cuando el DOM está completamente cargado
         document.addEventListener('DOMContentLoaded', () => {
-            showFullScreenLoading(); // Muestra la pantalla de carga completa inmediatamente
-            initMap(); // Inicializa el mapa y comienza el proceso de ubicación/parámetros
+            showFullScreenLoading();
+            initMap();
 
             const goButton = document.getElementById('go-button');
             const searchInput = document.getElementById('search-input');
@@ -511,7 +598,9 @@
             goButton.addEventListener('click', redirectToSearchScreen);
             searchInput.addEventListener('click', redirectToSearchScreen);
             // Previene la escritura directa en el input de búsqueda
-            searchInput.addEventListener('keypress', (e) => { e.preventDefault(); });
+            searchInput.addEventListener('keypress', (e) => {
+                e.preventDefault();
+            });
 
             // Evento para centrar el mapa en la ubicación del usuario
             centerLocationButton.addEventListener('click', () => {
@@ -520,16 +609,17 @@
                     userMarker.openPopup();
                     showNotification("Mapa centrado en tu ubicación.", 2000);
                 } else {
-                    simulateUserLocation(); // Si no hay marcador de usuario, intenta obtener la ubicación de nuevo
+                    simulateUserLocation();
                 }
             });
 
-            // Invalida el tamaño del mapa cuando la ventana cambia de tamaño para asegurar que se ajuste
+            // Ajusta el mapa al cambiar tamaño de ventana
             window.addEventListener('resize', () => {
-                if (map) { map.invalidateSize(); }
+                if (map) {
+                    map.invalidateSize();
+                }
             });
         });
     </script>
 </body>
 </html>
-
