@@ -3,190 +3,254 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interfaz Waze Minimalista</title>
+    <title>Ubycore</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233B82F6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Leaflet CSS (sin integrity ni crossorigin) -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
-
-    <!-- Font Awesome (se corrigió “xintegrity” y se eliminó integrity/crossorigin) -->
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-        referrerpolicy="no-referrer"
-    />
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* Estilos generales para asegurar que el mapa ocupe toda la pantalla y la fuente Inter */
+        /* Estilos generales para un aspecto tipo Apple */
         html, body {
             height: 100%;
             margin: 0;
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
             overflow: hidden;
+            background-color: #f3f4f6; /* Un gris claro de fondo */
         }
         #map {
             height: 100%;
             width: 100%;
             z-index: 0;
         }
-        /* Estilos para el control de atribución de Leaflet */
-        .leaflet-control-attribution a {
-            color: #0078A8 !important;
-        }
-        /* Estilos para los popups de Leaflet */
-        .leaflet-popup-content-wrapper,
-        .leaflet-popup-tip {
-            background: white;
-            box-shadow: 0 3px 14px rgba(0,0,0,0.4);
-            border-radius: 8px;
-        }
-
-        /* Estilos para la notificación inferior */
-        #notification {
+        
+        /* Estilos para las superposiciones modales con efecto de desenfoque */
+        .modal-overlay {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
-        }
-        #notification.show {
-            opacity: 1;
-        }
-
-        /* Estilos para el indicador de carga de ruta */
-        #route-loading-indicator {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
-        }
-        #route-loading-indicator.show {
-            opacity: 1;
-        }
-        /* Animación para los puntos suspensivos del indicador de carga de ruta */
-        #route-loading-indicator::after {
-            content: '...';
-            animation: dots 1s steps(3, end) infinite;
-        }
-        @keyframes dots {
-            0%, 20% {
-                color: rgba(255,255,255,0);
-                text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0);
-            }
-            40% {
-                color: white;
-                text-shadow: .25em 0 0 rgba(255,255,255,0), .5em 0 0 rgba(255,255,255,0);
-            }
-            60% {
-                text-shadow: .25em 0 0 white, .5em 0 0 rgba(255,255,255,0);
-            }
-            80%, 100% {
-                text-shadow: .25em 0 0 white, .5em 0 0 white;
-            }
-        }
-
-        /* Estilos para el icono de destino (similar a un pin de Waze) */
-        .destination-icon-div {
-            width: 28px;
-            height: 28px;
-            background-color: #EF4444;
-            border-radius: 50% 50% 50% 0;
-            transform: rotate(-45deg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            border: 2px solid white;
-        }
-        .destination-icon-div i {
-            transform: rotate(45deg);
-            color: white;
-            font-size: 14px;
-        }
-
-        /* Estilos para los marcadores de inicio y fin de ruta de Google Sheets */
-        .route-marker-icon {
-            background-color: #10B981; /* emerald-500 */
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            font-weight: bold;
-            line-height: 20px; /* Ajustar según el tamaño */
-            border: 2px solid white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-        }
-
-        /* ESTILOS PARA LA PANTALLA DE CARGA INICIAL */
-        #full-screen-loading-overlay {
-            position: fixed;
-            inset: 0; /* Cubre toda la pantalla */
-            background-color: rgba(17, 24, 39, 0.9); /* gray-900 con opacidad */
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
             display: flex;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            z-index: 20000; /* Asegura que esté por encima de todo */
-            opacity: 0; /* Inicialmente oculto */
-            visibility: hidden; /* Oculto para accesibilidad y evitar interacciones */
+            align-items: center;
+            z-index: 30000;
+            padding: 1rem;
+            opacity: 0;
+            visibility: hidden;
             transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
         }
-        #full-screen-loading-overlay.show {
+        .modal-overlay.show {
             opacity: 1;
             visibility: visible;
         }
-
-        /* Estilos para la barra de carga indeterminada */
-        .loading-bar-container {
-            width: 256px; /* w-64 */
-            height: 8px;   /* h-2 */
-            background-color: #4B5563; /* gray-700 */
-            border-radius: 9999px;     /* rounded-full */
-            overflow: hidden;
+        
+        .modal-box {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: #1f2937;
+            padding: 2rem;
+            border-radius: 1.5rem; /* Bordes más redondeados */
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            text-align: left;
             position: relative;
+            transform: scale(0.95);
+            transition: transform 0.3s ease-in-out;
         }
-        .loading-bar-inner {
+        .modal-overlay.show .modal-box {
+            transform: scale(1);
+        }
+        
+        .permission-buttons {
+            display: flex;
+            flex-direction: column;
+            sm:flex-direction-row;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+        
+        .permission-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+            width: 100%;
+            text-align: center;
+        }
+        
+        #allow-location, #retry-location, #submit-form-button {
+            background-color: #007AFF; /* Azul de Apple */
+            color: white;
+        }
+        #allow-location:hover, #retry-location:hover, #submit-form-button:hover {
+            background-color: #0056b3;
+        }
+        
+        #deny-location, #use-default-location {
+            background-color: #E5E5EA; /* Gris claro de Apple */
+            color: #007AFF;
+        }
+        #deny-location:hover, #use-default-location:hover {
+            background-color: #DCDCE0;
+        }
+
+        /* Estilos del formulario */
+        #form-modal-overlay .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #D1D5DB;
+            border-radius: 0.75rem;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            background-color: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        #form-modal-overlay .form-input:focus {
+            outline: none;
+            border-color: #007AFF;
+            box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+        }
+        #close-form-button {
             position: absolute;
-            height: 100%;
-            width: 35%; /* Ancho del segmento que se mueve */
-            background-color: #3B82F6; /* blue-500 */
-            animation: indeterminate-loading 1.5s cubic-bezier(0.65, 0.815, 0.735, 0.395) infinite;
+            top: 1rem;
+            right: 1rem;
+            background: #d1d5db;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            font-size: 16px;
+            cursor: pointer;
+            color: #8e8e93;
+            display:flex;
+            align-items:center;
+            justify-content:center;
         }
-        @keyframes indeterminate-loading {
-            0%   { left: -35%; right: 100%; }
-            60%  { left: 100%; right: -90%; }
-            100% { left: 100%; right: -90%; }
+        #close-form-button:hover {
+            background-color: #bcbcc1;
+            color: #1f2937;
         }
+
+        /* Indicador de carga */
+        #route-loading-indicator { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); color: white; padding: 10px 20px; border-radius: 20px; z-index: 10000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
+        #route-loading-indicator.show { opacity: 1; }
+        
+        /* Icono de destino personalizado */
+        .destination-icon-div { 
+            width: 32px; height: 32px; 
+            background-color: #34C759; /* Verde de Apple */
+            border-radius: 50% 50% 50% 0; 
+            transform: rotate(-45deg); 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2); 
+            border: 2px solid white; 
+        }
+        .destination-icon-div svg { transform: rotate(45deg); }
     </style>
 </head>
 <body class="bg-gray-100">
 
+    <!-- Modal de Permiso de Ubicación -->
+    <div id="location-permission-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-2xl font-bold mb-2">Permiso de ubicación</h2>
+            <p class="text-gray-600">Para mostrarte en el mapa y calcular rutas, Ubycore necesita acceder a tu ubicación. Tus datos de ubicación son privados.</p>
+            <div class="permission-buttons">
+                <button id="allow-location" class="permission-button">Permitir ubicación</button>
+                <button id="deny-location" class="permission-button">No permitir</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Error de Ubicación con Instrucciones -->
+    <div id="location-error-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-xl font-bold mb-2 text-red-600">Error de Permiso de Ubicación</h2>
+            <div class="text-gray-700 space-y-4">
+                <p>Ubycore no puede acceder a tu ubicación. Para obtener indicaciones y ver tu posición, necesitas habilitar los servicios de ubicación en tu navegador.</p>
+                <div>
+                    <h3 class="font-semibold mb-2">Cómo solucionarlo:</h3>
+                    <ul class="list-disc list-inside text-sm space-y-2 bg-gray-100 p-3 rounded-lg">
+                        <li><strong>Chrome:</strong> Ve a Configuración &rarr; Privacidad y seguridad &rarr; Configuración de sitios &rarr; Ubicación y asegúrate de que este sitio pueda preguntar por tu ubicación.</li>
+                        <li><strong>Safari:</strong> Ve a Preferencias &rarr; Sitios web &rarr; Ubicación. Selecciona este sitio y elije "Permitir".</li>
+                        <li><strong>Firefox:</strong> Ve a Opciones &rarr; Privacidad & seguridad &rarr; Permisos &rarr; Ubicación (Configuración) y comprueba que este sitio no esté bloqueado.</li>
+                    </ul>
+                </div>
+                <p>Después de ajustar la configuración, por favor, reintenta.</p>
+            </div>
+            <div class="permission-buttons">
+                <button id="retry-location" class="permission-button">Reintentar</button>
+                <button id="use-default-location" class="permission-button">Usar ubicación por defecto</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal del Formulario de Datos -->
+    <div id="form-modal-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <button id="close-form-button" title="Cerrar">&#x2715;</button>
+            <h2 class="text-2xl font-bold mb-2">Ayúdanos a mejorar</h2>
+            <p class="text-gray-600 mb-6">Por favor, completa la siguiente información. Es rápido y anónimo.</p>
+            <form id="data-form">
+                <div>
+                    <label for="nombre" class="font-semibold text-gray-700">Nombre Completo</label>
+                    <input type="text" id="nombre" name="nombre" class="form-input" required>
+                </div>
+                <div>
+                    <label for="edad" class="font-semibold text-gray-700">Edad</label>
+                    <input type="number" id="edad" name="edad" class="form-input" required>
+                </div>
+                <div>
+                    <label for="sexo" class="font-semibold text-gray-700">Sexo</label>
+                    <select id="sexo" name="sexo" class="form-input" required>
+                        <option value="">Seleccione...</option>
+                        <option value="Masculino">Masculino</option>
+                        <option value="Femenino">Femenino</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="nivelEscolar" class="font-semibold text-gray-700">Nivel Escolar</label>
+                    <select id="nivelEscolar" name="nivelEscolar" class="form-input" required>
+                        <option value="">Seleccione...</option>
+                        <option value="Primaria">Primaria</option>
+                        <option value="Secundaria">Secundaria</option>
+                        <option value="Bachillerato">Bachillerato</option>
+                        <option value="Licenciatura">Licenciatura</option>
+                        <option value="Posgrado">Posgrado</option>
+                        <option value="Ninguno">Ninguno</option>
+                    </select>
+                </div>
+                <div class="text-right mt-4">
+                     <button type="submit" id="submit-form-button" class="permission-button w-full sm:w-auto">Enviar Datos</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Interfaz Principal del Mapa -->
     <div class="relative h-screen w-screen flex flex-col">
-        <div class="absolute top-0 left-0 right-0 z-10 p-4 bg-white/90 backdrop-blur-md shadow-lg rounded-b-xl md:rounded-none">
-            <div class="max-w-3xl mx-auto flex items-center space-x-2 sm:space-x-4">
-                <input type="text" id="search-input" placeholder="¿A dónde vas o qué ruta cargas?"
-                       class="flex-grow p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow cursor-pointer"
-                       readonly>
+        <div class="absolute top-0 left-0 right-0 z-10 p-4">
+            <div class="max-w-3xl mx-auto flex items-center space-x-3">
+                <div id="search-input" class="flex-grow p-4 bg-white/80 backdrop-blur-md border border-gray-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex items-center space-x-3">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                     <span class="text-gray-500">¿A dónde vas?</span>
+                </div>
                 <button id="go-button"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all">
-                    Ir
+                        class="bg-white/80 backdrop-blur-md text-gray-700 font-semibold p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
             </div>
         </div>
@@ -194,12 +258,9 @@
         <div id="map" class="flex-grow"></div>
 
         <button id="center-location-button" title="Mi Ubicación"
-                class="absolute bottom-28 right-4 z-10 bg-white p-3 rounded-full shadow-xl hover:bg-gray-100 transition-colors">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                 class="text-blue-600">
-                <circle cx="12" cy="12" r="10"></circle>
-                <circle cx="12" cy="12" r="3"></circle>
+                class="absolute bottom-24 right-5 z-10 bg-white/80 backdrop-blur-md p-3 rounded-full shadow-lg hover:bg-white transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L22 8.5 12 22 2 8.5 12 2z"></path><path d="M12 22V12"></path>
             </svg>
         </button>
 
@@ -207,176 +268,125 @@
         <div id="route-loading-indicator">Cargando</div>
     </div>
 
-    <div id="full-screen-loading-overlay">
-        <div class="text-white text-lg mb-4">Cargando la aplicación...</div>
-        <div class="loading-bar-container">
-            <div class="loading-bar-inner"></div>
-        </div>
-    </div>
-
-    <!-- Leaflet JS (sin integrity ni crossorigin) -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // Coordenadas por defecto para Puebla (si no se puede obtener la ubicación del usuario)
+        // Constantes de configuración
         const PUEBLA_LAT = 19.0414;
         const PUEBLA_LNG = -98.2063;
-        let map; // Instancia del mapa Leaflet
-        let userMarker; // Marcador de la ubicación del usuario
-        let destinationMarker; // Marcador para destinos puntuales
-        let currentRoutePolyline; // Polilínea para rutas cargadas desde Google Sheets
-        let routeStartMarker, routeEndMarker; // Marcadores para el inicio y fin de una ruta de Sheets
-
-        const SEARCH_PAGE_URL = 'search_screen.html'; // URL de la pantalla de búsqueda (asumida)
-        // URL del script de Google Apps Script para obtener datos de rutas
+        const SEARCH_PAGE_URL = 'search_screen.html';
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
-        
-        // Referencias a los elementos de carga
+        const FORM_SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbwiukXVfPeMosfuBPil3XR2xl9sVjEf1-AOmkEdNts5ndziYxlZUEPBOlwOlhWVWbzl/exec';
+        const LOCATION_PERMISSION_KEY = 'ubycore_locationPermission';
+
+        // Variables del mapa y la interfaz
+        let map;
+        let userMarker;
+        let destinationMarker;
+        let currentRoutePolyline;
+        let routeStartMarker, routeEndMarker;
+
+        // Referencias a elementos de la UI
         const routeLoadingIndicator = document.getElementById('route-loading-indicator');
-        const fullScreenLoadingOverlay = document.getElementById('full-screen-loading-overlay');
+        const locationPermissionOverlay = document.getElementById('location-permission-overlay');
+        const locationErrorOverlay = document.getElementById('location-error-overlay');
+        const formModalOverlay = document.getElementById('form-modal-overlay');
+        const dataForm = document.getElementById('data-form');
+        const searchInputDisplay = document.querySelector('#search-input span');
 
         /**
-         * Muestra el indicador de carga específico para rutas.
-         * @param {string} message - Mensaje a mostrar en el indicador.
+         * Muestra/oculta un modal.
+         * @param {HTMLElement} overlay - El elemento del modal.
+         * @param {boolean} show - true para mostrar, false para ocultar.
          */
-        function showRouteLoading(message = "Cargando datos en el mapa...") {
-            routeLoadingIndicator.textContent = message;
-            routeLoadingIndicator.classList.add('show');
+        function toggleModal(overlay, show) {
+            if (show) {
+                overlay.classList.add('show');
+            } else {
+                overlay.classList.remove('show');
+            }
         }
 
-        /**
-         * Oculta el indicador de carga específico para rutas.
-         */
-        function hideRouteLoading() {
-            routeLoadingIndicator.classList.remove('show');
-        }
-
-        /**
-         * Muestra la pantalla de carga de pantalla completa.
-         */
-        function showFullScreenLoading() {
-            fullScreenLoadingOverlay.classList.add('show');
-        }
-
-        /**
-         * Oculta la pantalla de carga de pantalla completa y asegura que el mapa se redimensione.
-         */
-        function hideFullScreenLoading() {
-            fullScreenLoadingOverlay.classList.remove('show');
-            // Espera a que la transición de ocultamiento termine antes de invalidar el tamaño del mapa
-            setTimeout(() => {
-                if (map) {
-                    map.invalidateSize(); // Fuerza a Leaflet a recalcular el tamaño del mapa
-                }
-            }, 300); // Coincide con la duración de la transición CSS (0.3s)
-        }
-
-        /**
-         * Muestra una notificación temporal en la parte inferior de la pantalla.
-         * @param {string} message - Mensaje a mostrar en la notificación.
-         * @param {number} duration - Duración en milisegundos que la notificación estará visible.
-         */
         function showNotification(message, duration = 3000) {
-            const notificationElement = document.getElementById('notification');
-            notificationElement.textContent = message;
-            notificationElement.classList.add('show');
-            setTimeout(() => {
-                notificationElement.classList.remove('show');
-            }, duration);
+            const el = document.getElementById('notification');
+            if (!el) return;
+            el.textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), duration);
         }
 
         /**
-         * Inicializa el mapa Leaflet, lo centra en Puebla y añade el tile layer.
-         * Luego, intenta obtener la ubicación del usuario.
-         * La pantalla de carga completa se oculta una vez que el mapa está listo.
+         * Inicializa el mapa y gestiona los permisos de ubicación.
          */
         function initMap() {
             try {
-                // Crea el mapa y lo centra en Puebla con un zoom inicial
                 map = L.map('map', { zoomControl: false }).setView([PUEBLA_LAT, PUEBLA_LNG], 13);
-                // Añade el tile layer de OpenStreetMap
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxZoom: 19,
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
                 }).addTo(map);
-                // Añade el control de zoom en la esquina inferior derecha
                 L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+                const locationPreference = localStorage.getItem(LOCATION_PERMISSION_KEY);
                 
-                showNotification("Mapa inicializado.", 2000);
-                simulateUserLocation(); // Continúa con la lógica de la aplicación
+                if (locationPreference === null) {
+                    toggleModal(locationPermissionOverlay, true);
+                } else if (locationPreference === 'allowed') {
+                    requestUserLocation();
+                } else { // 'denied'
+                    toggleModal(locationErrorOverlay, true);
+                }
             } catch (error) {
                 console.error("Error al inicializar el mapa:", error);
-                showNotification("Error al cargar el mapa. Por favor, recarga la página.", 5000);
-                hideFullScreenLoading(); // Asegura que la pantalla de carga se oculte incluso si hay un error
+                document.body.innerHTML = '<h1>Error crítico al cargar el mapa.</h1>';
             }
         }
 
         /**
-         * Intenta obtener la ubicación actual del usuario. Si tiene éxito, actualiza el mapa y el marcador.
-         * Si falla, establece una ubicación por defecto.
-         * Después de obtener la ubicación, procesa los parámetros de la URL.
+         * Solicita la ubicación actual del usuario.
          */
-        function simulateUserLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(position => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    map.setView([userLat, userLng], 15); // Centra el mapa en la ubicación del usuario
-                    if (userMarker) {
-                        userMarker.setLatLng([userLat, userLng]); // Actualiza la posición del marcador
-                    } else {
-                         // Crea un icono personalizado para el marcador del usuario
-                         const userIcon = L.divIcon({
-                             html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>',
-                             className: '',
-                             iconSize: [16,16],
-                             iconAnchor: [8,8]
-                         });
-                         userMarker = L.marker([userLat, userLng], {icon: userIcon})
-                                        .addTo(map)
-                                        .bindPopup("<b>¡Estás aquí!</b>")
-                                        .openPopup();
-                    }
-                    showNotification("Ubicación actual obtenida.", 2000);
-                    processUrlParameters(); // Procesa parámetros de URL después de obtener la ubicación
-                }, () => {
-                    setDefaultUserLocation(); // Si falla, usa la ubicación por defecto
-                    showNotification("No se pudo obtener la ubicación.", 3000);
-                    processUrlParameters();
-                });
-            } else {
-                setDefaultUserLocation(); // Si la geolocalización no es soportada
-                showNotification("Geolocalización no soportada.", 3000);
-                processUrlParameters();
+        function requestUserLocation() {
+            if (!navigator.geolocation) {
+                toggleModal(locationErrorOverlay, true);
+                return;
             }
+            
+            navigator.geolocation.getCurrentPosition(position => {
+                const { latitude, longitude } = position.coords;
+                localStorage.setItem(LOCATION_PERMISSION_KEY, 'allowed');
+                map.setView([latitude, longitude], 16);
+                if (userMarker) {
+                    userMarker.setLatLng([latitude, longitude]);
+                } else {
+                     const userIcon = L.divIcon({
+                         html: `<div class="w-5 h-5 bg-blue-500 rounded-full ring-4 ring-white/70 shadow-lg"></div>`,
+                         className: '', iconSize: [20, 20], iconAnchor: [10, 10]
+                     });
+                     userMarker = L.marker([latitude, longitude], {icon: userIcon}).addTo(map);
+                }
+                processUrlParameters();
+            }, () => {
+                localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
+                toggleModal(locationErrorOverlay, true);
+            }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
         
-        /**
-         * Establece la ubicación del usuario en las coordenadas de Puebla por defecto.
-         */
         function setDefaultUserLocation() {
-            if (userMarker) {
-                userMarker.setLatLng([PUEBLA_LAT, PUEBLA_LNG]);
-            } else {
+            if (!userMarker) {
                 const userIcon = L.divIcon({
-                    html: '<div class="w-4 h-4 bg-blue-500 rounded-full border-2 border-white shadow-md"></div>',
-                    className: '',
-                    iconSize: [16,16],
-                    iconAnchor: [8,8]
+                    html: '<div class="w-4 h-4 bg-gray-500 rounded-full border-2 border-white shadow-md"></div>',
+                    className: '', iconSize: [16,16], iconAnchor: [8,8]
                 });
                 userMarker = L.marker([PUEBLA_LAT, PUEBLA_LNG], {icon: userIcon})
-                                .addTo(map)
-                                .bindPopup("<b>Ubicación por defecto</b>")
-                                .openPopup();
+                                .addTo(map).bindPopup("<b>Ubicación por defecto</b>").openPopup();
             }
-            // Si la vista actual del mapa no contiene la ubicación por defecto, la centra
             if (!map.getBounds().contains(L.latLng(PUEBLA_LAT, PUEBLA_LNG))) {
                  map.setView([PUEBLA_LAT, PUEBLA_LNG], 13);
             }
+            processUrlParameters();
         }
 
-        /**
-         * Limpia todas las capas de marcadores y polilíneas de rutas previas en el mapa.
-         */
         function clearMapLayers() {
             if (destinationMarker) map.removeLayer(destinationMarker);
             if (currentRoutePolyline) map.removeLayer(currentRoutePolyline);
@@ -384,241 +394,142 @@
             if (routeEndMarker) map.removeLayer(routeEndMarker);
         }
 
-        /**
-         * Función para parsear una cadena de coordenada con formato especial
-         * (ej. "190.683.457" a 19.0683457).
-         */
         function parseCoordinate(coordString) {
-            // Elimina todos los puntos
-            let cleanedString = String(coordString).replace(/\./g, '');
-
-            // Verifica si es un número negativo
-            const isNegative = cleanedString.startsWith('-');
-            if (isNegative) {
-                cleanedString = cleanedString.substring(1);
-            }
-
-            // Requiere al menos 3 dígitos para insertar el punto decimal
-            if (cleanedString.length < 3) {
-                console.warn("Cadena de coordenada demasiado corta para el formato asumido:", coordString);
-                return parseFloat(coordString.replace(',', '.')); // Fallback
-            }
-
-            // Inserta el punto decimal
-            let parsedValue = parseFloat(
-                cleanedString.slice(0, 2) + '.' + cleanedString.slice(2)
-            );
-
-            if (isNegative) {
-                parsedValue = -parsedValue;
-            }
-
-            return parsedValue;
+            let s = String(coordString).replace(/,/g, '.').replace(/[^\d.-]/g, '');
+            return parseFloat(s);
         }
 
-        /**
-         * Carga y dibuja una ruta desde Google Sheets usando el nombre de la ruta.
-         */
         async function loadAndDrawGoogleSheetRoute(routeName) {
             clearMapLayers();
-            document.getElementById('search-input').value = `Ruta: ${routeName}`;
-            showRouteLoading(`Cargando ruta '${routeName}' desde Google Sheets`);
-
+            searchInputDisplay.textContent = `Ruta: ${routeName}`;
+            routeLoadingIndicator.classList.add('show');
             try {
                 const response = await fetch(`${GOOGLE_SCRIPT_URL}?ruta=${encodeURIComponent(routeName)}`);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    if (errorText.includes("RUTA NO ENCONTRADA")) throw new Error("RUTA NO ENCONTRADA");
-                    throw new Error(`Error del servidor: ${response.status}`);
-                }
-                const coordinatesData = await response.json();
-
-                if (!Array.isArray(coordinatesData) || coordinatesData.length === 0) {
-                    throw new Error("No se recibieron coordenadas o el formato es incorrecto.");
-                }
-
-                // Mapea los datos de coordenadas
-                const latLngs = coordinatesData.map(coord => {
-                    const lat = parseCoordinate(coord.lat);
-                    const lng = parseCoordinate(coord.lng);
-                    if (isNaN(lat) || isNaN(lng)) {
-                        console.warn("Coordenada inválida encontrada y omitida:", coord);
-                        return null;
-                    }
-                    return [lat, lng];
-                }).filter(c => c !== null);
-
-                if (latLngs.length < 2) {
-                     throw new Error("Se necesitan al menos dos puntos válidos para trazar una ruta.");
-                }
-
-                // Dibuja la polilínea de la ruta
-                currentRoutePolyline = L.polyline(latLngs, {
-                    color: '#D97706',
-                    weight: 5,
-                    opacity: 0.9
-                }).addTo(map);
+                if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+                const data = await response.json();
+                if (!Array.isArray(data) || data.length < 2) throw new Error("Datos de ruta inválidos.");
+                
+                const latLngs = data.map(c => [parseCoordinate(c.lat), parseCoordinate(c.lng)]);
+                
+                currentRoutePolyline = L.polyline(latLngs, { color: '#007AFF', weight: 6, opacity: 0.8, smoothFactor: 1 }).addTo(map);
                 map.fitBounds(currentRoutePolyline.getBounds().pad(0.1));
 
-                // Marcadores de inicio y fin
-                const startIcon = L.divIcon({
-                    className: 'route-marker-icon',
-                    html: 'A',
-                    iconSize: [20, 20]
-                });
-                const endIcon = L.divIcon({
-                    className: 'route-marker-icon',
-                    html: 'B',
-                    iconSize: [20, 20]
-                });
+                routeStartMarker = L.marker(latLngs[0], {icon: L.divIcon({ className: 'route-marker-icon bg-blue-500 text-white rounded-full text-center font-bold w-6 h-6 leading-6 border-2 border-white shadow-lg', html: 'A', iconSize: [24, 24] })}).addTo(map);
+                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: L.divIcon({ className: 'route-marker-icon bg-green-500 text-white rounded-full text-center font-bold w-6 h-6 leading-6 border-2 border-white shadow-lg', html: 'B', iconSize: [24, 24] })}).addTo(map);
 
-                routeStartMarker = L.marker(latLngs[0], {icon: startIcon})
-                                  .addTo(map)
-                                  .bindPopup(`Inicio: ${routeName}<br><small>${coordinatesData[0].fecha || ''}</small>`);
-                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: endIcon})
-                                .addTo(map)
-                                .bindPopup(`Fin: ${routeName}<br><small>${coordinatesData[latLngs.length-1].fecha || ''}</small>`);
-
-                showNotification(`Ruta '${routeName}' cargada correctamente.`, 3000);
             } catch (error) {
-                console.error(`Error loading Google Sheet route '${routeName}':`, error);
-                showNotification(`Error al cargar ruta '${routeName}': ${error.message}`, 5000);
-                document.getElementById('search-input').value = `Error cargando: ${routeName}`;
+                showNotification(`Error al cargar ruta: ${error.message}`, 5000);
             } finally {
-                hideRouteLoading();
+                routeLoadingIndicator.classList.remove('show');
             }
         }
 
-        /**
-         * Procesa un destino puntual y lo muestra en el mapa.
-         */
         function processPointDestination(destination) {
             clearMapLayers();
-            document.getElementById('search-input').value = destination.name;
-            let destLat = parseCoordinate(destination.lat);
-            let destLng = parseCoordinate(destination.lng);
+            searchInputDisplay.textContent = destination.name;
+            const latLng = [parseCoordinate(destination.lat), parseCoordinate(destination.lng)];
 
-            if (isNaN(destLat) || isNaN(destLng)) {
-                showNotification(`Destino: ${destination.name} (sin coordenadas válidas).`, 3000);
-                return;
-            }
+            if (isNaN(latLng[0]) || isNaN(latLng[1])) return;
+            
+            const destIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+            const destIcon = L.divIcon({ html: `<div class="destination-icon-div">${destIconSvg}</div>`, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32] });
+            destinationMarker = L.marker(latLng, { icon: destIcon }).addTo(map)
+                .bindPopup(`<b>Destino:</b><br>${destination.name}`).openPopup();
 
-            const destinationLatLng = L.latLng(destLat, destLng);
-            // Crea un icono personalizado
-            const destIcon = L.divIcon({
-                html: '<div class="destination-icon-div"><i class="fas fa-map-marker-alt"></i></div>',
-                className: '',
-                iconSize: [28, 28],
-                iconAnchor: [14, 28],
-                popupAnchor: [0, -28]
-            });
-            destinationMarker = L.marker(destinationLatLng, { icon: destIcon })
-                .addTo(map)
-                .bindPopup(`<b>Destino:</b><br>${destination.name}${destination.address ? '<br><small>' + destination.address + '</small>' : ''}`)
-                .openPopup();
-
-            // Simula una ruta desde la ubicación del usuario al destino puntual
             if (userMarker) {
                 const userLatLng = userMarker.getLatLng();
-                currentRoutePolyline = L.polyline([userLatLng, destinationLatLng], {
-                    color: '#3B82F6',
-                    weight: 6,
-                    opacity: 0.8,
-                    dashArray: '5, 5'
-                }).addTo(map);
-                map.fitBounds(L.latLngBounds([userLatLng, destinationLatLng]).pad(0.2));
-                showNotification(`Ruta simulada a ${destination.name} trazada.`, 2000);
+                map.fitBounds(L.latLngBounds([userLatLng, latLng]).pad(0.2));
             } else {
-                map.setView(destinationLatLng, 15);
+                map.setView(latLng, 15);
             }
+        }
+        
+        function processUrlParameters() {
+            const params = new URLSearchParams(window.location.search);
+            const routeName = params.get('routeName');
+            const destination = params.get('destination');
 
-            // Limpia el parámetro de la URL
+            if (routeName) {
+                loadAndDrawGoogleSheetRoute(routeName);
+            } else if (destination) {
+                try {
+                    processPointDestination(JSON.parse(destination));
+                } catch (e) { console.error("Error al procesar el destino:", e); }
+            }
+            
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
 
-        /**
-         * Procesa los parámetros de la URL para cargar una ruta o un destino puntual.
-         */
-        function processUrlParameters() {
-            const params = new URLSearchParams(window.location.search);
-            const routeNameParam = params.get('routeName');
-            const destinationParam = params.get('destination');
-
-            if (routeNameParam) {
-                loadAndDrawGoogleSheetRoute(routeNameParam);
-            } else if (destinationParam) {
-                try {
-                    const destination = JSON.parse(destinationParam);
-                    processPointDestination(destination);
-                } catch (e) {
-                    console.error("Error al procesar el destino puntual:", e);
-                    showNotification("Error al leer datos del destino.", 3000);
-                }
-            } else {
-                // Si no hay parámetros, intenta restaurar la última vista del mapa
-                const lastView = localStorage.getItem('mapLastView');
-                if (lastView) {
-                    try {
-                        const view = JSON.parse(lastView);
-                        map.setView([view.lat, view.lng], view.zoom);
-                        localStorage.removeItem('mapLastView');
-                    } catch (e) {
-                        console.error("Error al restaurar vista de mapa:", e);
-                    }
-                }
-            }
-            hideFullScreenLoading(); // Oculta la pantalla de carga inicial
-        }
-
-        /**
-         * Redirige a la pantalla de búsqueda, guardando la vista actual del mapa.
-         */
         function redirectToSearchScreen() {
-            const currentCenter = map.getCenter();
-            const currentZoom = map.getZoom();
-            localStorage.setItem('mapLastView', JSON.stringify({
-                lat: currentCenter.lat,
-                lng: currentCenter.lng,
-                zoom: currentZoom
-            }));
+            if (!map) return;
+            const { lat, lng } = map.getCenter();
+            localStorage.setItem('mapLastView', JSON.stringify({ lat, lng, zoom: map.getZoom() }));
             window.location.href = SEARCH_PAGE_URL;
         }
 
-        // Evento que se dispara cuando el DOM está completamente cargado
+        // --- Configuración de Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
-            showFullScreenLoading();
             initMap();
 
-            const goButton = document.getElementById('go-button');
-            const searchInput = document.getElementById('search-input');
-            const centerLocationButton = document.getElementById('center-location-button');
+            document.getElementById('allow-location').addEventListener('click', () => {
+                toggleModal(locationPermissionOverlay, false);
+                requestUserLocation();
+            });
+            document.getElementById('deny-location').addEventListener('click', () => {
+                localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
+                toggleModal(locationPermissionOverlay, false);
+                toggleModal(locationErrorOverlay, true);
+            });
+            document.getElementById('retry-location').addEventListener('click', () => {
+                toggleModal(locationErrorOverlay, false);
+                requestUserLocation();
+            });
+            document.getElementById('use-default-location').addEventListener('click', () => {
+                toggleModal(locationErrorOverlay, false);
+                setDefaultUserLocation();
+            });
 
-            // Asigna eventos de clic para redirigir a la pantalla de búsqueda
-            goButton.addEventListener('click', redirectToSearchScreen);
-            searchInput.addEventListener('click', redirectToSearchScreen);
-            // Previene la escritura directa en el input de búsqueda
-            searchInput.addEventListener('keypress', (e) => {
+            document.getElementById('close-form-button').addEventListener('click', () => toggleModal(formModalOverlay, false));
+
+            dataForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const submitButton = document.getElementById('submit-form-button');
+                submitButton.disabled = true;
+                submitButton.textContent = 'Enviando...';
+                
+                try {
+                    const response = await fetch(`${FORM_SUBMIT_URL}?${new URLSearchParams(new FormData(dataForm)).toString()}`);
+                    const resultText = await response.text();
+                    if (resultText.includes("Datos recibidos")) {
+                        showNotification('¡Gracias! Tus datos han sido enviados.', 4000);
+                        toggleModal(formModalOverlay, false);
+                        dataForm.reset();
+                    } else { throw new Error('Respuesta inesperada del servidor.'); }
+                } catch (error) {
+                    showNotification('Error al enviar. Inténtalo de nuevo.', 4000);
+                } finally {
+                     submitButton.disabled = false;
+                     submitButton.textContent = 'Enviar Datos';
+                }
             });
+            
+            // Muestra el formulario después de 3 minutos
+            setTimeout(() => {
+                toggleModal(formModalOverlay, true);
+            }, 180000);
 
-            // Evento para centrar el mapa en la ubicación del usuario
-            centerLocationButton.addEventListener('click', () => {
+            document.getElementById('go-button').addEventListener('click', redirectToSearchScreen);
+            document.getElementById('search-input').addEventListener('click', redirectToSearchScreen);
+            document.getElementById('center-location-button').addEventListener('click', () => {
                 if (userMarker) {
-                    map.setView(userMarker.getLatLng(), 15);
-                    userMarker.openPopup();
-                    showNotification("Mapa centrado en tu ubicación.", 2000);
+                    map.setView(userMarker.getLatLng(), 16);
                 } else {
-                    simulateUserLocation();
+                    toggleModal(locationPermissionOverlay, true);
                 }
             });
 
-            // Ajusta el mapa al cambiar tamaño de ventana
-            window.addEventListener('resize', () => {
-                if (map) {
-                    map.invalidateSize();
-                }
-            });
+            window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
         });
     </script>
 </body>
