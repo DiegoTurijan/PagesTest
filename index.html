@@ -395,8 +395,27 @@
         }
 
         function parseCoordinate(coordString) {
-            let s = String(coordString).replace(/,/g, '.').replace(/[^\d.-]/g, '');
-            return parseFloat(s);
+            // Esta función está diseñada para manejar coordenadas almacenadas como enteros,
+            // por ejemplo, '190414' para 19.0414 o '-982063' para -98.2063.
+            // Se ajustó para corregir un error en el que las rutas se cargaban con coordenadas incorrectas.
+            let s = String(coordString).replace(/[.,]/g, '');
+            const isNeg = s.startsWith('-');
+            if (isNeg) {
+                s = s.substring(1);
+            }
+
+            // Respaldo para formatos inesperados.
+            if (s.length < 4) {
+                return parseFloat(coordString);
+            }
+
+            // Determina dónde colocar el punto decimal. Asume que las longitudes pueden tener
+            // 3 dígitos enteros (p. ej., -102.xxxx) y las latitudes tienen 2 (p. ej., 19.xxxx).
+            const splitIndex = s.length > 6 ? 3 : 2;
+            
+            let p = parseFloat(s.slice(0, splitIndex) + '.' + s.slice(splitIndex));
+            
+            return isNeg ? -p : p;
         }
 
         async function loadAndDrawGoogleSheetRoute(routeName) {
