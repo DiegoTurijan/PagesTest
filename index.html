@@ -143,7 +143,9 @@
             color: #1f2937;
         }
 
-        /* Indicador de carga */
+        /* Indicador de carga y notificación */
+        #notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); color: white; padding: 10px 20px; border-radius: 20px; z-index: 10000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
+        #notification.show { opacity: 1; }
         #route-loading-indicator { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); color: white; padding: 10px 20px; border-radius: 20px; z-index: 10000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
         #route-loading-indicator.show { opacity: 1; }
         
@@ -158,6 +160,18 @@
             border: 2px solid white; 
         }
         .destination-icon-div svg { transform: rotate(45deg); }
+        
+        /* Estilo antiguo para los marcadores de ruta (A y B) */
+        .route-marker-icon { 
+            background-color: #10B981; 
+            color: white; 
+            border-radius: 50%; 
+            text-align: center; 
+            font-weight: bold; 
+            line-height: 20px; 
+            border: 2px solid white; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
+        }
     </style>
 </head>
 <body class="bg-gray-100">
@@ -244,9 +258,9 @@
     <div class="relative h-screen w-screen flex flex-col">
         <div class="absolute top-0 left-0 right-0 z-10 p-4">
             <div class="max-w-3xl mx-auto flex items-center space-x-3">
-                <div id="search-input" class="flex-grow p-4 bg-white/80 backdrop-blur-md border border-gray-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex items-center space-x-3">
+                <div id="search-container" class="flex-grow p-4 bg-white/80 backdrop-blur-md border border-gray-200/50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow cursor-pointer flex items-center space-x-3">
                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                     <span class="text-gray-500">¿A dónde vas?</span>
+                     <span id="search-input-display" class="text-gray-500">¿A dónde vas?</span>
                 </div>
                 <button id="go-button"
                         class="bg-white/80 backdrop-blur-md text-gray-700 font-semibold p-4 rounded-2xl shadow-lg hover:shadow-xl transition-all flex-shrink-0">
@@ -265,7 +279,7 @@
         </button>
 
         <div id="notification"></div>
-        <div id="route-loading-indicator">Cargando</div>
+        <div id="route-loading-indicator">Cargando...</div>
     </div>
 
     <!-- Leaflet JS -->
@@ -292,7 +306,7 @@
         const locationErrorOverlay = document.getElementById('location-error-overlay');
         const formModalOverlay = document.getElementById('form-modal-overlay');
         const dataForm = document.getElementById('data-form');
-        const searchInputDisplay = document.querySelector('#search-input span');
+        const searchInputDisplay = document.getElementById('search-input-display');
 
         /**
          * Muestra/oculta un modal.
@@ -394,27 +408,16 @@
             if (routeEndMarker) map.removeLayer(routeEndMarker);
         }
 
+        /**
+         * FIX: Restored original function to correctly parse coordinates
+         * from the Google Sheet format (e.g., -9812345 -> -98.12345).
+         */
         function parseCoordinate(coordString) {
-            // Esta función está diseñada para manejar coordenadas almacenadas como enteros,
-            // por ejemplo, '190414' para 19.0414 o '-982063' para -98.2063.
-            // Se ajustó para corregir un error en el que las rutas se cargaban con coordenadas incorrectas.
             let s = String(coordString).replace(/[.,]/g, '');
             const isNeg = s.startsWith('-');
-            if (isNeg) {
-                s = s.substring(1);
-            }
-
-            // Respaldo para formatos inesperados.
-            if (s.length < 4) {
-                return parseFloat(coordString);
-            }
-
-            // Determina dónde colocar el punto decimal. Asume que las longitudes pueden tener
-            // 3 dígitos enteros (p. ej., -102.xxxx) y las latitudes tienen 2 (p. ej., 19.xxxx).
-            const splitIndex = s.length > 6 ? 3 : 2;
-            
-            let p = parseFloat(s.slice(0, splitIndex) + '.' + s.slice(splitIndex));
-            
+            if(isNeg) s = s.substring(1);
+            if (s.length < 3) return parseFloat(coordString); // Fallback
+            let p = parseFloat(s.slice(0, 2) + '.' + s.slice(2));
             return isNeg ? -p : p;
         }
 
@@ -432,9 +435,12 @@
                 
                 currentRoutePolyline = L.polyline(latLngs, { color: '#007AFF', weight: 6, opacity: 0.8, smoothFactor: 1 }).addTo(map);
                 map.fitBounds(currentRoutePolyline.getBounds().pad(0.1));
-
-                routeStartMarker = L.marker(latLngs[0], {icon: L.divIcon({ className: 'route-marker-icon bg-blue-500 text-white rounded-full text-center font-bold w-6 h-6 leading-6 border-2 border-white shadow-lg', html: 'A', iconSize: [24, 24] })}).addTo(map);
-                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: L.divIcon({ className: 'route-marker-icon bg-green-500 text-white rounded-full text-center font-bold w-6 h-6 leading-6 border-2 border-white shadow-lg', html: 'B', iconSize: [24, 24] })}).addTo(map);
+                
+                // FIX: Reverted to the old marker style as requested
+                routeStartMarker = L.marker(latLngs[0], {icon: L.divIcon({ className: 'route-marker-icon', html: 'A', iconSize: [20, 20] })}).addTo(map);
+                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: L.divIcon({ className: 'route-marker-icon', html: 'B', iconSize: [20, 20] })}).addTo(map);
+                
+                showNotification(`Ruta '${routeName}' cargada.`, 3000);
 
             } catch (error) {
                 showNotification(`Error al cargar ruta: ${error.message}`, 5000);
@@ -539,7 +545,7 @@
             }, 180000);
 
             document.getElementById('go-button').addEventListener('click', redirectToSearchScreen);
-            document.getElementById('search-input').addEventListener('click', redirectToSearchScreen);
+            document.getElementById('search-container').addEventListener('click', redirectToSearchScreen);
             document.getElementById('center-location-button').addEventListener('click', () => {
                 if (userMarker) {
                     map.setView(userMarker.getLatLng(), 16);
@@ -553,3 +559,4 @@
     </script>
 </body>
 </html>
+
