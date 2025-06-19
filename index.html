@@ -7,8 +7,8 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233B82F6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- OpenLayers CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -54,65 +54,31 @@
             visibility: visible;
         }
         
-        /* --- ESTILOS MEJORADOS PARA LAS CAJAS DE DIÁLOGO RESPONSIVAS CON SCROLL --- */
         .modal-box {
             background-color: rgba(255, 255, 255, 0.95);
             color: #1f2937;
-            padding: 1.5rem; /* Padding ajustado para mejor visualización en móviles */
+            padding: 2rem;
             border-radius: 1.5rem; /* Bordes más redondeados */
-            max-width: 90%; /* Limita el ancho al 90% del viewport */
-            width: 500px; /* Ancho máximo para pantallas más grandes */
+            max-width: 500px;
+            width: 100%;
             box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
             text-align: left;
             position: relative;
             transform: scale(0.95);
             transition: transform 0.3s ease-in-out;
-            box-sizing: border-box; /* Asegura que el padding se incluya en el ancho */
-            max-height: 80vh; /* Permite que la caja no ocupe toda la altura */
-            overflow-y: auto; /* Agrega scroll si el contenido excede la altura máxima */
         }
         .modal-overlay.show .modal-box {
             transform: scale(1);
         }
         
-        /* Estilos de la scrollbar personalizados (WebKit) */
-        .modal-box::-webkit-scrollbar {
-            width: 8px; /* Ancho de la scrollbar */
-        }
-        .modal-box::-webkit-scrollbar-track {
-            background: #f3f4f6; /* Color de la pista (fondo) de la scrollbar */
-            border-radius: 10px;
-        }
-        .modal-box::-webkit-scrollbar-thumb {
-            background-color: #d1d5db; /* Color del "pulgar" de la scrollbar */
-            border-radius: 10px;
-            border: 2px solid #f3f4f6; /* Pequeño borde para separarlo de la pista */
-        }
-        .modal-box::-webkit-scrollbar-thumb:hover {
-            background-color: #9ca3af; /* Color del "pulgar" al pasar el mouse */
-        }
-
-        /* --- ESTILOS MEJORADOS PARA LOS BOTONES DE PERMISO RESPONSIVOS --- */
         .permission-buttons {
             display: flex;
-            flex-direction: column; /* Por defecto en columna para móviles */
+            flex-direction: column;
+            sm:flex-direction-row;
             gap: 0.75rem;
             margin-top: 1.5rem;
         }
         
-        @media (min-width: 640px) { /* Breakpoint 'sm' de Tailwind */
-            .permission-buttons {
-                flex-direction: row; /* En fila para pantallas más grandes */
-            }
-            /* Los botones individuales se ajustan automáticamente */
-            #allow-location, #deny-location, 
-            #retry-location, #use-default-location,
-            #submit-form-button {
-                width: auto; /* Permite que los botones se ajusten a su contenido */
-                flex-grow: 1; /* Permite que crezcan para llenar el espacio disponible en modo fila */
-            }
-        }
-
         .permission-button {
             padding: 0.75rem 1.5rem;
             border-radius: 0.75rem;
@@ -120,9 +86,8 @@
             cursor: pointer;
             transition: all 0.2s;
             border: none;
-            width: 100%; /* Asegura ancho completo en pantallas pequeñas */
+            width: 100%;
             text-align: center;
-            flex-shrink: 0; /* Previene que se encojan en un contenedor flex */
         }
         
         #allow-location, #retry-location, #submit-form-button {
@@ -131,10 +96,6 @@
         }
         #allow-location:hover, #retry-location:hover, #submit-form-button:hover {
             background-color: #0056b3;
-        }
-        #allow-location:disabled, #retry-location:disabled, #submit-form-button:disabled {
-            background-color: #8e8e93; /* Color gris para botones deshabilitados */
-            cursor: not-allowed;
         }
         
         #deny-location, #use-default-location {
@@ -183,45 +144,9 @@
         }
 
         /* Indicador de carga y notificación */
-        #notification { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background-color: rgba(30, 30, 30, 0.85); 
-            backdrop-filter: blur(5px); 
-            color: white; 
-            padding: 10px 20px; 
-            border-radius: 20px; 
-            z-index: 10000; 
-            opacity: 0; 
-            transition: opacity 0.5s ease-in-out; 
-            pointer-events: none; 
-            max-width: 90vw; /* Ajuste para pantallas pequeñas */
-            text-align: center;
-            white-space: nowrap; /* Evita que el texto se rompa */
-            overflow: hidden; /* Oculta el exceso */
-            text-overflow: ellipsis; /* Añade puntos suspensivos si el texto es muy largo */
-        }
+        #notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); color: white; padding: 10px 20px; border-radius: 20px; z-index: 10000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
         #notification.show { opacity: 1; }
-
-        #route-loading-indicator { 
-            position: fixed; 
-            bottom: 20px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-            background-color: rgba(30, 30, 30, 0.85); 
-            backdrop-filter: blur(5px); 
-            color: white; 
-            padding: 10px 20px; 
-            border-radius: 20px; 
-            z-index: 10000; 
-            opacity: 0; 
-            transition: opacity 0.5s ease-in-out; 
-            pointer-events: none; 
-            max-width: 90vw; /* Ajuste para pantallas pequeñas */
-            text-align: center;
-        }
+        #route-loading-indicator { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background-color: rgba(30, 30, 30, 0.85); backdrop-filter: blur(5px); color: white; padding: 10px 20px; border-radius: 20px; z-index: 10000; opacity: 0; transition: opacity 0.5s ease-in-out; pointer-events: none; }
         #route-loading-indicator.show { opacity: 1; }
         
         /* Icono de destino personalizado */
@@ -237,7 +162,7 @@
         .destination-icon-div svg { transform: rotate(45deg); }
         
         /* Estilo antiguo para los marcadores de ruta (A y B) */
-        .route-marker-icon { 
+        .route-marker-div { 
             background-color: #10B981; 
             color: white; 
             border-radius: 50%; 
@@ -246,18 +171,23 @@
             line-height: 20px; 
             border: 2px solid white; 
             box-shadow: 0 1px 3px rgba(0,0,0,0.2); 
-        }
-
-        /* Estilos para los iconos en los títulos de los modales */
-        .modal-title-icon {
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 0.5rem;
-            color: #007AFF; /* Azul de Apple para los iconos */
-        }
-        .modal-box h2 {
+            width: 20px;
+            height: 20px;
             display: flex;
             align-items: center;
+            justify-content: center;
+        }
+
+        /* Estilo para el marcador de usuario */
+        .user-marker-div {
+            width: 20px;
+            height: 20px;
+            background-color: #007AFF; /* Azul de Apple */
+            border-radius: 50%;
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -266,14 +196,7 @@
     <!-- Modal de Permiso de Ubicación -->
     <div id="location-permission-overlay" class="modal-overlay">
         <div class="modal-box">
-            <h2 class="text-2xl font-bold mb-2">
-                <!-- Icono de ubicación -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-icon">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                </svg>
-                Permiso de ubicación
-            </h2>
+            <h2 class="text-2xl font-bold mb-2">Permiso de ubicación</h2>
             <p class="text-gray-600">Para mostrarte en el mapa y calcular rutas, Ubycore necesita acceder a tu ubicación. Tus datos de ubicación son privados.</p>
             <div class="permission-buttons">
                 <button id="allow-location" class="permission-button">Permitir ubicación</button>
@@ -285,15 +208,7 @@
     <!-- Modal de Error de Ubicación con Instrucciones -->
     <div id="location-error-overlay" class="modal-overlay">
         <div class="modal-box">
-            <h2 class="text-xl font-bold mb-2 text-red-600">
-                <!-- Icono de alerta -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-icon text-red-600">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                    <line x1="12" y1="9" x2="12" y2="13"></line>
-                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                Error de Permiso de Ubicación
-            </h2>
+            <h2 class="text-xl font-bold mb-2 text-red-600">Error de Permiso de Ubicación</h2>
             <div class="text-gray-700 space-y-4">
                 <p>Ubycore no puede acceder a tu ubicación. Para obtener indicaciones y ver tu posición, necesitas habilitar los servicios de ubicación en tu navegador.</p>
                 <div>
@@ -317,17 +232,7 @@
     <div id="form-modal-overlay" class="modal-overlay">
         <div class="modal-box">
             <button id="close-form-button" title="Cerrar">&#x2715;</button>
-            <h2 class="text-2xl font-bold mb-2">
-                <!-- Icono de formulario -->
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="modal-title-icon">
-                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="16" y1="13" x2="8" y2="13"></line>
-                    <line x1="16" y1="17" x2="8" y2="17"></line>
-                    <line x1="10" y1="9" x2="8" y2="9"></line>
-                </svg>
-                Ayúdanos a mejorar
-            </h2>
+            <h2 class="text-2xl font-bold mb-2">Ayúdanos a mejorar</h2>
             <p class="text-gray-600 mb-6">Por favor, completa la siguiente información. Es rápido y anónimo.</p>
             <form id="data-form">
                 <div>
@@ -394,32 +299,43 @@
         <div id="route-loading-indicator">Cargando...</div>
     </div>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- OpenLayers JS -->
+    <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
     <script>
-        // Constantes de configuración
+        // Import necessary OpenLayers modules
+        const { Map, View } = ol;
+        const { Tile: TileLayer, Vector: VectorLayer } = ol.layer;
+        const { OSM, Vector: VectorSource } = ol.source;
+        const { Style, Stroke, Fill, Circle } = ol.style;
+        const { Point, LineString } = ol.geom;
+        const { fromLonLat, toLonLat } = ol.proj;
+        const { Overlay } = ol;
+        const { Zoom: ZoomControl } = ol.control;
+
+        // Configuration constants
         const PUEBLA_LAT = 19.0414;
         const PUEBLA_LNG = -98.2063;
         const SEARCH_PAGE_URL = 'search_screen.html';
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
-        const FORM_SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbwiukXVfPeMosfuBPil3XR2xl9sVjEf1-AOmkEdNts5ndziYxlZUEPBOlwOlhWVWbzl/exec';
+        const FORM_SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbwiukXVfPeMosfuBPil3XR2xl9sVjEf1-AOmcEdNts5ndziYxlZUEPBOlwOlhWVWbzl/exec';
         const LOCATION_PERMISSION_KEY = 'ubycore_locationPermission';
 
-        // Variables del mapa y la interfaz
+        // Map and interface variables
         let map;
-        let userMarker;
-        let destinationMarker;
-        let currentRoutePolyline;
-        let routeStartMarker, routeEndMarker;
+        let userLocationOverlay; // Using Overlay for custom HTML marker
+        let destinationOverlay; // Using Overlay for custom HTML marker
+        let routeVectorSource; // Source for route polyline and start/end markers
+        let routeVectorLayer; // Layer for route features
+        let routeStartOverlay, routeEndOverlay; // Overlays for route start/end markers
 
-        // Referencias a elementos de la UI
+
+        // References to UI elements
         const routeLoadingIndicator = document.getElementById('route-loading-indicator');
         const locationPermissionOverlay = document.getElementById('location-permission-overlay');
         const locationErrorOverlay = document.getElementById('location-error-overlay');
         const formModalOverlay = document.getElementById('form-modal-overlay');
         const dataForm = document.getElementById('data-form');
         const searchInputDisplay = document.getElementById('search-input-display');
-        const notificationEl = document.getElementById('notification'); // Referencia para la notificación
 
         /**
          * Muestra/oculta un modal.
@@ -435,17 +351,16 @@
         }
 
         /**
-         * Muestra una notificación temporal.
+         * Muestra un mensaje de notificación temporal.
          * @param {string} message - El mensaje a mostrar.
-         * @param {number} duration - Duración en milisegundos.
+         * @param {number} duration - Duración en milisegundos para mostrar el mensaje.
          */
         function showNotification(message, duration = 3000) {
-            if (!notificationEl) return;
-            notificationEl.textContent = message;
-            notificationEl.classList.add('show');
-            // Limpia cualquier timeout anterior para evitar solapamiento
-            clearTimeout(notificationEl.timeoutId); 
-            notificationEl.timeoutId = setTimeout(() => notificationEl.classList.remove('show'), duration);
+            const el = document.getElementById('notification');
+            if (!el) return;
+            el.textContent = message;
+            el.classList.add('show');
+            setTimeout(() => el.classList.remove('show'), duration);
         }
 
         /**
@@ -453,13 +368,36 @@
          */
         function initMap() {
             try {
-                map = L.map('map', { zoomControl: false }).setView([PUEBLA_LAT, PUEBLA_LNG], 13);
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                    subdomains: 'abcd',
-                    maxZoom: 20
-                }).addTo(map);
-                L.control.zoom({ position: 'bottomright' }).addTo(map);
+                // Create the vector source for all dynamic features (user, destination, route)
+                routeVectorSource = new VectorSource();
+                routeVectorLayer = new VectorLayer({
+                    source: routeVectorSource
+                });
+
+                map = new Map({
+                    target: 'map',
+                    layers: [
+                        new TileLayer({
+                            source: new OSM(), // Changed to OSM source for OpenStreetMap tiles
+                            attributions: '© OpenStreetMap contributors' // Correct attribution for OSM
+                        }),
+                        routeVectorLayer // Add the vector layer for features
+                    ],
+                    view: new View({
+                        center: fromLonLat([PUEBLA_LNG, PUEBLA_LAT]), // OpenLayers uses [longitude, latitude]
+                        zoom: 13,
+                        minZoom: 2,
+                        maxZoom: 20
+                    }),
+                    controls: [] // Clear default controls to add custom ones
+                });
+
+                // Add custom zoom control to bottom right
+                map.addControl(new ZoomControl({
+                    target: document.createElement('div'), // Create a dummy div to place control
+                    className: 'ol-zoom ol-control-bottom-right' // Add custom class for styling with Tailwind if needed
+                }));
+
 
                 const locationPreference = localStorage.getItem(LOCATION_PERMISSION_KEY);
                 
@@ -468,8 +406,7 @@
                 } else if (locationPreference === 'allowed') {
                     requestUserLocation();
                 } else { // 'denied'
-                    setDefaultUserLocation(); // Muestra ubicación por defecto si se denegó
-                    toggleModal(locationErrorOverlay, true); // Y el modal de error
+                    toggleModal(locationErrorOverlay, true);
                 }
             } catch (error) {
                 console.error("Error al inicializar el mapa:", error);
@@ -479,128 +416,123 @@
 
         /**
          * Solicita la ubicación actual del usuario.
-         * Se ha mejorado la gestión del estado de los botones y la retroalimentación al usuario.
          */
         function requestUserLocation() {
-            const retryButton = document.getElementById('retry-location');
-            const allowButton = document.getElementById('allow-location');
-
-            // Función para restablecer el estado de los botones y ocultar la notificación de carga
-            const resetUI = () => {
-                if (retryButton) {
-                    retryButton.disabled = false;
-                    retryButton.textContent = 'Reintentar';
-                }
-                if (allowButton) {
-                    allowButton.disabled = false;
-                    allowButton.textContent = 'Permitir ubicación';
-                }
-                // Asegurarse de que la notificación de "buscando" se oculte
-                notificationEl.classList.remove('show');
-            };
-
             if (!navigator.geolocation) {
                 toggleModal(locationErrorOverlay, true);
-                showNotification('Tu navegador no soporta la geolocalización.', 5000);
-                resetUI();
                 return;
             }
             
-            // Deshabilitar botones y mostrar estado de carga
-            if (retryButton) {
-                retryButton.disabled = true;
-                retryButton.textContent = 'Buscando...';
-            }
-            if (allowButton) {
-                allowButton.disabled = true;
-                allowButton.textContent = 'Buscando...';
-            }
-            showNotification('Buscando tu ubicación...', 90000); // Duración larga, se ocultará al finalizar
-
             navigator.geolocation.getCurrentPosition(position => {
                 const { latitude, longitude } = position.coords;
                 localStorage.setItem(LOCATION_PERMISSION_KEY, 'allowed');
-                map.setView([latitude, longitude], 16);
-                if (userMarker) {
-                    userMarker.setLatLng([latitude, longitude]);
+                const userCoords = fromLonLat([longitude, latitude]); // Convert to Web Mercator
+
+                map.getView().setCenter(userCoords);
+                map.getView().setZoom(16);
+
+                if (userLocationOverlay) {
+                    userLocationOverlay.setPosition(userCoords);
                 } else {
-                     const userIcon = L.divIcon({
-                         html: `<div class="w-5 h-5 bg-blue-500 rounded-full ring-4 ring-white/70 shadow-lg"></div>`,
-                         className: '', iconSize: [20, 20], iconAnchor: [10, 10]
-                     });
-                     userMarker = L.marker([latitude, longitude], {icon: userIcon}).addTo(map);
+                    // Crea un elemento HTML personalizado para el marcador de usuario
+                    const userMarkerEl = document.createElement('div');
+                    userMarkerEl.className = 'user-marker-div';
+                    userLocationOverlay = new Overlay({
+                        element: userMarkerEl,
+                        position: userCoords,
+                        positioning: 'center-center' // Centra el elemento HTML en las coordenadas
+                    });
+                    map.addOverlay(userLocationOverlay);
                 }
-                // Ocultar cualquier modal de permiso/error si la ubicación fue exitosa
-                toggleModal(locationPermissionOverlay, false);
-                toggleModal(locationErrorOverlay, false);
-                showNotification('Ubicación encontrada.', 3000);
                 processUrlParameters();
-                resetUI(); // Restablecer UI al éxito
-            }, (error) => {
-                console.error("Error al obtener ubicación:", error);
+            }, () => {
                 localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
-                toggleModal(locationErrorOverlay, true); // Mostrar modal de error
-                let errorMessage = 'No se pudo obtener la ubicación.';
-                if (error.code === error.PERMISSION_DENIED) {
-                    errorMessage = 'El navegador ha bloqueado el acceso a tu ubicación. Por favor, revísalo en la configuración de tu navegador.';
-                } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    errorMessage += ' La información de ubicación no está disponible.';
-                } else if (error.code === error.TIMEOUT) {
-                    errorMessage += ' La solicitud de ubicación ha caducado.';
-                }
-                showNotification(errorMessage, 5000);
-                resetUI(); // Restablecer UI al error
+                toggleModal(locationErrorOverlay, true);
             }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
         }
         
         /**
-         * Establece una ubicación por defecto si no se puede obtener la del usuario.
+         * Establece una ubicación de usuario predeterminada si la geolocalización es denegada o no está disponible.
          */
         function setDefaultUserLocation() {
-            if (!userMarker) {
-                const userIcon = L.divIcon({
-                    html: '<div class="w-4 h-4 bg-gray-500 rounded-full border-2 border-white shadow-md"></div>',
-                    className: '', iconSize: [16,16], iconAnchor: [8,8]
-                });
-                userMarker = L.marker([PUEBLA_LAT, PUEBLA_LNG], {icon: userIcon})
-                                .addTo(map).bindPopup("<b>Ubicación por defecto</b>").openPopup();
+            const defaultCoords = fromLonLat([PUEBLA_LNG, PUEBLA_LAT]);
+
+            if (userLocationOverlay) {
+                userLocationOverlay.setPosition(defaultCoords);
             } else {
-                userMarker.setLatLng([PUEBLA_LAT, PUEBLA_LNG]);
+                const userMarkerEl = document.createElement('div');
+                userMarkerEl.className = 'user-marker-div';
+                userLocationOverlay = new Overlay({
+                    element: userMarkerEl,
+                    position: defaultCoords,
+                    positioning: 'center-center'
+                });
+                map.addOverlay(userLocationOverlay);
             }
-            if (!map.getBounds().contains(L.latLng(PUEBLA_LAT, PUEBLA_LNG))) {
-                 map.setView([PUEBLA_LAT, PUEBLA_LNG], 13);
+
+            // Asegura que la vista del mapa incluya la ubicación predeterminada si aún no lo hace
+            const view = map.getView();
+            const currentExtent = view.calculateExtent(map.getSize());
+            if (!ol.extent.containsCoordinate(currentExtent, defaultCoords)) {
+                 view.setCenter(defaultCoords);
+                 view.setZoom(13);
             }
             processUrlParameters();
         }
 
         /**
-         * Limpia las capas de ruta y destino del mapa.
+         * Borra todas las capas dinámicas (destino, ruta, marcadores de ruta) del mapa.
          */
         function clearMapLayers() {
-            if (destinationMarker) { map.removeLayer(destinationMarker); destinationMarker = null; }
-            if (currentRoutePolyline) { map.removeLayer(currentRoutePolyline); currentRoutePolyline = null; }
-            if (routeStartMarker) { map.removeLayer(routeStartMarker); routeStartMarker = null; }
-            if (routeEndMarker) { map.removeLayer(routeEndMarker); routeEndMarker = null; }
+            routeVectorSource.clear(); // Borra todas las características de la fuente de la capa de ruta
+            if (destinationOverlay) {
+                map.removeOverlay(destinationOverlay);
+                destinationOverlay = null;
+            }
+            if (routeStartOverlay) {
+                map.removeOverlay(routeStartOverlay);
+                routeStartOverlay = null;
+            }
+            if (routeEndOverlay) {
+                map.removeOverlay(routeEndOverlay);
+                routeEndOverlay = null;
+            }
         }
 
         /**
-         * Analiza y corrige las coordenadas de un string.
-         * @param {string|number} coordString - La coordenada a parsear (ej. -9812345).
-         * @returns {number} La coordenada flotante corregida (ej. -98.12345).
+         * Parsea una cadena de coordenadas a un número flotante.
+         * Asume que si no hay punto decimal, debe insertarse después de los dos primeros dígitos
+         * (después de cualquier signo negativo inicial).
+         * @param {string} coordString - La cadena de la coordenada (ej. "190414" o "-982063").
+         * @returns {number} La coordenada parseada como un número flotante.
          */
         function parseCoordinate(coordString) {
-            let s = String(coordString).replace(/[.,]/g, ''); // Elimina puntos y comas
+            let s = String(coordString);
+            s = s.replace(',', '.'); // Manejar la coma como separador decimal si está presente
+
+            // Si ya es un número flotante válido y contiene un punto decimal, simplemente parsearlo.
+            if (!isNaN(parseFloat(s)) && s.includes('.')) {
+                return parseFloat(s);
+            }
+
+            // Si no tiene punto decimal, asume que es una cadena de dígitos donde el decimal debe ser insertado.
             const isNeg = s.startsWith('-');
-            if(isNeg) s = s.substring(1);
-            if (s.length < 3) return parseFloat(coordString); // Fallback para números pequeños
-            // Inserta el punto decimal para formar un número de latitud/longitud
-            let p = parseFloat(s.slice(0, s.length - 5) + '.' + s.slice(s.length - 5));
-            return isNeg ? -p : p;
+            let digitsOnly = isNeg ? s.substring(1) : s;
+
+            if (digitsOnly.length >= 2) {
+                // Insertar el punto decimal después del segundo dígito
+                let integerPart = digitsOnly.slice(0, 2);
+                let decimalPart = digitsOnly.slice(2);
+                return parseFloat(integerPart + '.' + decimalPart) * (isNeg ? -1 : 1);
+            } else {
+                // Si la cadena es más corta de 2 dígitos (ej. "5", "1"), tratar como un flotante simple.
+                return parseFloat(s); // Usar la cadena original `s` para preservar el signo negativo.
+            }
         }
 
         /**
-         * Carga y dibuja una ruta desde Google Sheet.
-         * @param {string} routeName - Nombre de la ruta a cargar.
+         * Carga los datos de la ruta desde Google Sheet y los dibuja en el mapa.
+         * @param {string} routeName - El nombre de la ruta a cargar.
          */
         async function loadAndDrawGoogleSheetRoute(routeName) {
             clearMapLayers();
@@ -612,54 +544,111 @@
                 const data = await response.json();
                 if (!Array.isArray(data) || data.length < 2) throw new Error("Datos de ruta inválidos.");
                 
-                const latLngs = data.map(c => [parseCoordinate(c.lat), parseCoordinate(c.lng)]);
+                // Convierte todas las coordenadas a Web Mercator ([longitud, latitud])
+                const olLatLngs = data.map(c => fromLonLat([parseCoordinate(c.lng), parseCoordinate(c.lat)]));
                 
-                currentRoutePolyline = L.polyline(latLngs, { color: '#007AFF', weight: 6, opacity: 0.8, smoothFactor: 1 }).addTo(map);
-                map.fitBounds(currentRoutePolyline.getBounds().pad(0.1));
+                // Crea la característica de la polilínea
+                const routeFeature = new ol.Feature({
+                    geometry: new LineString(olLatLngs)
+                });
+                routeFeature.setStyle(new Style({
+                    stroke: new Stroke({
+                        color: '#007AFF', // Azul de Apple
+                        width: 6,
+                        opacity: 0.8
+                    })
+                }));
+                routeVectorSource.addFeature(routeFeature); // Añade a la fuente de vectores común
+
+                // Ajusta el mapa a la extensión de la ruta
+                map.getView().fit(routeFeature.getGeometry().getExtent(), {
+                    padding: [50, 50, 50, 50], // Añade relleno alrededor de la ruta
+                    duration: 1000
+                });
                 
-                // Marcadores de inicio y fin de ruta
-                routeStartMarker = L.marker(latLngs[0], {icon: L.divIcon({ className: 'route-marker-icon', html: 'A', iconSize: [20, 20] })}).addTo(map);
-                routeEndMarker = L.marker(latLngs[latLngs.length - 1], {icon: L.divIcon({ className: 'route-marker-icon', html: 'B', iconSize: [20, 20] })}).addTo(map);
-                
+                // Crea los marcadores de inicio y fin como Overlays para HTML personalizado
+                const startMarkerEl = document.createElement('div');
+                startMarkerEl.className = 'route-marker-div';
+                startMarkerEl.textContent = 'A';
+                routeStartOverlay = new Overlay({
+                    element: startMarkerEl,
+                    position: olLatLngs[0],
+                    positioning: 'center-center'
+                });
+                map.addOverlay(routeStartOverlay);
+
+                const endMarkerEl = document.createElement('div');
+                endMarkerEl.className = 'route-marker-div';
+                endMarkerEl.textContent = 'B';
+                routeEndOverlay = new Overlay({
+                    element: endMarkerEl,
+                    position: olLatLngs[olLatLngs.length - 1],
+                    positioning: 'center-center'
+                });
+                map.addOverlay(routeEndOverlay);
+
                 showNotification(`Ruta '${routeName}' cargada.`, 3000);
 
             } catch (error) {
                 showNotification(`Error al cargar ruta: ${error.message}`, 5000);
-                console.error("Error al cargar ruta:", error);
+                console.error("Error loading route:", error);
             } finally {
                 routeLoadingIndicator.classList.remove('show');
             }
         }
 
         /**
-         * Procesa y muestra un punto de destino en el mapa.
-         * @param {object} destination - Objeto con {name, lat, lng}.
+         * Procesa un destino puntual y lo marca en el mapa.
+         * @param {object} destination - Objeto que contiene nombre, lat y lng.
          */
         function processPointDestination(destination) {
             clearMapLayers();
             searchInputDisplay.textContent = destination.name;
-            const latLng = [parseCoordinate(destination.lat), parseCoordinate(destination.lng)];
+            const latLng = [parseCoordinate(destination.lng), parseCoordinate(destination.lat)]; // OpenLayers: [lng, lat]
+            const olCoords = fromLonLat(latLng);
 
-            if (isNaN(latLng[0]) || isNaN(latLng[1])) {
-                showNotification('Coordenadas de destino inválidas.', 4000);
+            if (isNaN(olCoords[0]) || isNaN(olCoords[1])) {
+                console.error("Invalid coordinates for destination:", destination);
                 return;
             }
             
+            // Crea un elemento HTML personalizado para el marcador de destino
             const destIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
-            const destIcon = L.divIcon({ html: `<div class="destination-icon-div">${destIconSvg}</div>`, className: '', iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -32] });
-            destinationMarker = L.marker(latLng, { icon: destIcon }).addTo(map)
-                .bindPopup(`<b>Destino:</b><br>${destination.name}`).openPopup();
+            const destinationMarkerEl = document.createElement('div');
+            destinationMarkerEl.className = 'destination-icon-div';
+            destinationMarkerEl.innerHTML = destIconSvg;
 
-            if (userMarker) {
-                const userLatLng = userMarker.getLatLng();
-                map.fitBounds(L.latLngBounds([userLatLng, latLng]).pad(0.2));
+            destinationOverlay = new Overlay({
+                element: destinationMarkerEl,
+                position: olCoords,
+                positioning: 'bottom-center' // Posiciona la punta del marcador en las coordenadas
+            });
+            map.addOverlay(destinationOverlay);
+
+            // Añade un popup al hacer clic en el marcador
+            destinationMarkerEl.addEventListener('click', () => {
+                const popupContent = `<b>Destino:</b><br>${destination.name}`;
+                showNotification(popupContent, 5000); // Usando la notificación existente para simplificar
+            });
+
+            if (userLocationOverlay && userLocationOverlay.getPosition()) {
+                // Ajusta los límites para incluir tanto al usuario como al destino
+                const userCoords = userLocationOverlay.getPosition();
+                const extent = ol.extent.createEmpty();
+                ol.extent.extend(extent, userCoords);
+                ol.extent.extend(extent, olCoords);
+                map.getView().fit(extent, {
+                    padding: [100, 100, 100, 100],
+                    duration: 1000
+                });
             } else {
-                map.setView(latLng, 15);
+                map.getView().setCenter(olCoords);
+                map.getView().setZoom(15);
             }
         }
         
         /**
-         * Procesa los parámetros de la URL para cargar rutas o destinos.
+         * Procesa los parámetros de la URL para cargar una ruta o un destino al cargar el mapa.
          */
         function processUrlParameters() {
             const params = new URLSearchParams(window.location.search);
@@ -671,24 +660,22 @@
             } else if (destination) {
                 try {
                     processPointDestination(JSON.parse(destination));
-                } catch (e) { 
-                    console.error("Error al procesar el destino desde URL:", e); 
-                    showNotification('Error al cargar el destino especificado.', 4000);
-                }
+                } catch (e) { console.error("Error al procesar el destino:", e); }
             }
             
-            // Limpia los parámetros de la URL para evitar recargas inesperadas
+            // Limpia la URL después de procesar
             const newUrl = window.location.pathname;
             window.history.replaceState({}, document.title, newUrl);
         }
 
         /**
-         * Redirige a la pantalla de búsqueda, guardando la última vista del mapa.
+         * Redirige a la pantalla de búsqueda, conservando la vista actual del mapa.
          */
         function redirectToSearchScreen() {
             if (!map) return;
-            const { lat, lng } = map.getCenter();
-            localStorage.setItem('mapLastView', JSON.stringify({ lat, lng, zoom: map.getZoom() }));
+            const view = map.getView();
+            const center = toLonLat(view.getCenter()); // Convierte de nuevo a [lon, lat]
+            localStorage.setItem('mapLastView', JSON.stringify({ lat: center[1], lng: center[0], zoom: view.getZoom() }));
             window.location.href = SEARCH_PAGE_URL;
         }
 
@@ -703,15 +690,13 @@
             document.getElementById('deny-location').addEventListener('click', () => {
                 localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied');
                 toggleModal(locationPermissionOverlay, false);
-                setDefaultUserLocation(); // Establecer ubicación por defecto al denegar
-                toggleModal(locationErrorOverlay, true); // Mostrar el modal de error
+                toggleModal(locationErrorOverlay, true);
             });
             document.getElementById('retry-location').addEventListener('click', () => {
                 toggleModal(locationErrorOverlay, false);
                 requestUserLocation();
             });
             document.getElementById('use-default-location').addEventListener('click', () => {
-                localStorage.setItem(LOCATION_PERMISSION_KEY, 'denied'); // Marcar como denegado si se usa por defecto
                 toggleModal(locationErrorOverlay, false);
                 setDefaultUserLocation();
             });
@@ -734,7 +719,6 @@
                     } else { throw new Error('Respuesta inesperada del servidor.'); }
                 } catch (error) {
                     showNotification('Error al enviar. Inténtalo de nuevo.', 4000);
-                    console.error("Error al enviar formulario:", error);
                 } finally {
                      submitButton.disabled = false;
                      submitButton.textContent = 'Enviar Datos';
@@ -749,17 +733,18 @@
             document.getElementById('go-button').addEventListener('click', redirectToSearchScreen);
             document.getElementById('search-container').addEventListener('click', redirectToSearchScreen);
             document.getElementById('center-location-button').addEventListener('click', () => {
-                if (userMarker) {
-                    map.setView(userMarker.getLatLng(), 16);
+                if (userLocationOverlay && userLocationOverlay.getPosition()) {
+                    map.getView().setCenter(userLocationOverlay.getPosition());
+                    map.getView().setZoom(16);
                 } else {
-                    // Si no hay marcador de usuario, intenta solicitar la ubicación de nuevo
-                    showNotification('Ubicación no disponible. Intentando obtenerla...', 3000);
-                    requestUserLocation();
+                    toggleModal(locationPermissionOverlay, true);
                 }
             });
 
-            window.addEventListener('resize', () => { if (map) map.invalidateSize(); });
+            // OpenLayers generalmente maneja el redimensionamiento automáticamente con CSS, pero una actualización manual no está de más
+            window.addEventListener('resize', () => { if (map) map.updateSize(); });
         });
     </script>
 </body>
 </html>
+
