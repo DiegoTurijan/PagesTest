@@ -7,7 +7,6 @@
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%233B82F6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z'%3E%3C/path%3E%3Ccircle cx='12' cy='10' r='3'%3E%3C/circle%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <!-- OpenLayers CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v8.2.0/ol.css">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -90,24 +89,24 @@
             text-align: center;
         }
         
-        #allow-location, #retry-location, #submit-form-button {
+        #allow-location, #retry-location, #submit-form-button, #confirm-report-incident-button, #submit-incident-button {
             background-color: #007AFF; /* Azul de Apple */
             color: white;
         }
-        #allow-location:hover, #retry-location:hover, #submit-form-button:hover {
+        #allow-location:hover, #retry-location:hover, #submit-form-button:hover, #confirm-report-incident-button:hover, #submit-incident-button:hover {
             background-color: #0056b3;
         }
         
-        #deny-location, #use-default-location {
+        #deny-location, #use-default-location, #cancel-report-incident-button {
             background-color: #E5E5EA; /* Gris claro de Apple */
             color: #007AFF;
         }
-        #deny-location:hover, #use-default-location:hover {
+        #deny-location:hover, #use-default-location:hover, #cancel-report-incident-button:hover {
             background-color: #DCDCE0;
         }
 
         /* Estilos del formulario */
-        #form-modal-overlay .form-input {
+        #form-modal-overlay .form-input, #incident-form-overlay .form-input {
             width: 100%;
             padding: 0.75rem;
             border: 1px solid #D1D5DB;
@@ -117,12 +116,12 @@
             background-color: #fff;
             transition: border-color 0.2s, box-shadow 0.2s;
         }
-        #form-modal-overlay .form-input:focus {
+        #form-modal-overlay .form-input:focus, #incident-form-overlay .form-input:focus {
             outline: none;
             border-color: #007AFF;
             box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
         }
-        #close-form-button {
+        #close-form-button, #close-incident-form-button {
             position: absolute;
             top: 1rem;
             right: 1rem;
@@ -138,7 +137,7 @@
             align-items:center;
             justify-content:center;
         }
-        #close-form-button:hover {
+        #close-form-button:hover, #close-incident-form-button:hover {
             background-color: #bcbcc1;
             color: #1f2937;
         }
@@ -189,11 +188,49 @@
             align-items: center;
             justify-content: center;
         }
+
+        /* Estilo para el marcador de incidente */
+        .incident-icon-div {
+            width: 32px;
+            height: 32px;
+            background-color: #FF3B30; /* Rojo de Apple */
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border: 2px solid white;
+        }
+        .incident-icon-div svg {
+            color: white;
+        }
+
+        /* Botón flotante para reportar incidente */
+        #report-incident-button {
+            position: absolute;
+            bottom: 24px;
+            left: 20px; /* Alineado a la izquierda */
+            z-index: 10;
+            background-color: #FF3B30; /* Rojo de Apple */
+            color: white;
+            padding: 1rem;
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s, transform 0.2s;
+        }
+        #report-incident-button:hover {
+            background-color: #CC0000;
+            transform: scale(1.05);
+        }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <!-- Modal de Permiso de Ubicación -->
     <div id="location-permission-overlay" class="modal-overlay">
         <div class="modal-box">
             <h2 class="text-2xl font-bold mb-2">Permiso de ubicación</h2>
@@ -205,7 +242,6 @@
         </div>
     </div>
     
-    <!-- Modal de Error de Ubicación con Instrucciones -->
     <div id="location-error-overlay" class="modal-overlay">
         <div class="modal-box">
             <h2 class="text-xl font-bold mb-2 text-red-600">Error de Permiso de Ubicación</h2>
@@ -228,7 +264,6 @@
         </div>
     </div>
     
-    <!-- Modal del Formulario de Datos -->
     <div id="form-modal-overlay" class="modal-overlay">
         <div class="modal-box">
             <button id="close-form-button" title="Cerrar">&#x2715;</button>
@@ -271,7 +306,47 @@
         </div>
     </div>
 
-    <!-- Interfaz Principal del Mapa -->
+    <div id="report-incident-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <h2 class="text-2xl font-bold mb-2">Reportar un Incidente</h2>
+            <p class="text-gray-600">¿Deseas reportar un incidente de tráfico o un evento en tu ubicación actual?</p>
+            <div class="permission-buttons">
+                <button id="confirm-report-incident-button" class="permission-button">Sí, reportar</button>
+                <button id="cancel-report-incident-button" class="permission-button">No, gracias</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="incident-form-overlay" class="modal-overlay">
+        <div class="modal-box">
+            <button id="close-incident-form-button" title="Cerrar">&#x2715;</button>
+            <h2 class="text-2xl font-bold mb-2">Detalles del Incidente</h2>
+            <p class="text-gray-600 mb-6">Por favor, describe el incidente. Tu ubicación actual será registrada.</p>
+            <form id="incident-form">
+                <div>
+                    <label for="incident-type" class="font-semibold text-gray-700">Tipo de Incidente</label>
+                    <select id="incident-type" name="incidentType" class="form-input" required>
+                        <option value="">Seleccione...</option>
+                        <option value="Tráfico Lento">Tráfico Lento</option>
+                        <option value="Accidente">Accidente</option>
+                        <option value="Cierre de Carretera">Cierre de Carretera</option>
+                        <option value="Peligro en la Vía">Peligro en la Vía</option>
+                        <option value="Obra">Obra</option>
+                        <option value="Evento Público">Evento Público</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="incident-description" class="font-semibold text-gray-700">Descripción (Opcional)</label>
+                    <textarea id="incident-description" name="description" class="form-input" rows="3"></textarea>
+                </div>
+                <div class="text-right mt-4">
+                     <button type="submit" id="submit-incident-button" class="permission-button w-full sm:w-auto">Reportar Incidente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div class="relative h-screen w-screen flex flex-col">
         <div class="absolute top-0 left-0 right-0 z-10 p-4">
             <div class="max-w-3xl mx-auto flex items-center space-x-3">
@@ -295,11 +370,14 @@
             </svg>
         </button>
 
+        <button id="report-incident-button" title="Reportar Incidente">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </button>
+
         <div id="notification"></div>
         <div id="route-loading-indicator">Cargando...</div>
     </div>
 
-    <!-- OpenLayers JS -->
     <script src="https://cdn.jsdelivr.net/npm/ol@v8.2.0/dist/ol.js"></script>
     <script>
         // Import necessary OpenLayers modules
@@ -318,16 +396,19 @@
         const SEARCH_PAGE_URL = 'search_screen.html';
         const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
         const FORM_SUBMIT_URL = 'https://script.google.com/macros/s/AKfycbwiukXVfPeMosfuBPil3XR2xl9sVjEf1-AOmcEdNts5ndziYxlZUEPBOlwOlhWVWbzl/exec';
+        const INCIDENT_APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbycx21bkBonZjjklyPfirnzUXFaFGF6aeb2DSKZP81EGD2JcQgQHgWWBCgs1mY-Ysum/exec'; // New API for incidents
         const LOCATION_PERMISSION_KEY = 'ubycore_locationPermission';
 
         // Map and interface variables
         let map;
         let userLocationOverlay; // Using Overlay for custom HTML marker
         let destinationOverlay; // Using Overlay for custom HTML marker
-        let routeVectorSource; // Source for route polyline and start/end markers
+        let routeVectorSource; // Source for route polyline and start/end markers (now also incidents)
         let routeVectorLayer; // Layer for route features
         let routeStartOverlay, routeEndOverlay; // Overlays for route start/end markers
 
+        let userCurrentLatitude = PUEBLA_LAT;
+        let userCurrentLongitude = PUEBLA_LNG;
 
         // References to UI elements
         const routeLoadingIndicator = document.getElementById('route-loading-indicator');
@@ -336,6 +417,11 @@
         const formModalOverlay = document.getElementById('form-modal-overlay');
         const dataForm = document.getElementById('data-form');
         const searchInputDisplay = document.getElementById('search-input-display');
+
+        // New Incident UI elements
+        const reportIncidentOverlay = document.getElementById('report-incident-overlay');
+        const incidentFormOverlay = document.getElementById('incident-form-overlay');
+        const incidentForm = document.getElementById('incident-form');
 
         /**
          * Muestra/oculta un modal.
@@ -368,7 +454,7 @@
          */
         function initMap() {
             try {
-                // Create the vector source for all dynamic features (user, destination, route)
+                // Create the vector source for all dynamic features (user, destination, route, incidents)
                 routeVectorSource = new VectorSource();
                 routeVectorLayer = new VectorLayer({
                     source: routeVectorSource
@@ -408,6 +494,10 @@
                 } else { // 'denied'
                     toggleModal(locationErrorOverlay, true);
                 }
+
+                // Load incidents when map initializes
+                loadIncidents();
+
             } catch (error) {
                 console.error("Error al inicializar el mapa:", error);
                 document.body.innerHTML = '<h1>Error crítico al cargar el mapa.</h1>';
@@ -425,6 +515,8 @@
             
             navigator.geolocation.getCurrentPosition(position => {
                 const { latitude, longitude } = position.coords;
+                userCurrentLatitude = latitude;
+                userCurrentLongitude = longitude;
                 localStorage.setItem(LOCATION_PERMISSION_KEY, 'allowed');
                 const userCoords = fromLonLat([longitude, latitude]); // Convert to Web Mercator
 
@@ -456,6 +548,8 @@
          */
         function setDefaultUserLocation() {
             const defaultCoords = fromLonLat([PUEBLA_LNG, PUEBLA_LAT]);
+            userCurrentLatitude = PUEBLA_LAT;
+            userCurrentLongitude = PUEBLA_LNG;
 
             if (userLocationOverlay) {
                 userLocationOverlay.setPosition(defaultCoords);
@@ -481,10 +575,11 @@
         }
 
         /**
-         * Borra todas las capas dinámicas (destino, ruta, marcadores de ruta) del mapa.
+         * Borra todas las capas dinámicas (destino, ruta, marcadores de ruta).
+         * DOES NOT clear incident markers as they are refreshed by loadIncidents().
          */
         function clearMapLayers() {
-            routeVectorSource.clear(); // Borra todas las características de la fuente de la capa de ruta
+            // Remove route/destination specific overlays
             if (destinationOverlay) {
                 map.removeOverlay(destinationOverlay);
                 destinationOverlay = null;
@@ -497,6 +592,11 @@
                 map.removeOverlay(routeEndOverlay);
                 routeEndOverlay = null;
             }
+            // Clear only route features from routeVectorSource. Incident markers will be re-added by loadIncidents().
+            const featuresToRemove = routeVectorSource.getFeatures().filter(feature => 
+                !feature.get('type') || (feature.get('type') !== 'incident')
+            );
+            featuresToRemove.forEach(feature => routeVectorSource.removeFeature(feature));
         }
 
         /**
@@ -535,7 +635,8 @@
          * @param {string} routeName - El nombre de la ruta a cargar.
          */
         async function loadAndDrawGoogleSheetRoute(routeName) {
-            clearMapLayers();
+            clearMapLayers(); // Clear old route/destination features, but not incidents
+            loadIncidents(); // Reload incidents to ensure they are visible on top of new route
             searchInputDisplay.textContent = `Ruta: ${routeName}`;
             routeLoadingIndicator.classList.add('show');
             try {
@@ -549,7 +650,8 @@
                 
                 // Crea la característica de la polilínea
                 const routeFeature = new ol.Feature({
-                    geometry: new LineString(olLatLngs)
+                    geometry: new LineString(olLatLngs),
+                    type: 'route' // Add type to identify feature
                 });
                 routeFeature.setStyle(new Style({
                     stroke: new Stroke({
@@ -602,7 +704,8 @@
          * @param {object} destination - Objeto que contiene nombre, lat y lng.
          */
         function processPointDestination(destination) {
-            clearMapLayers();
+            clearMapLayers(); // Clear old route/destination features, but not incidents
+            loadIncidents(); // Reload incidents
             searchInputDisplay.textContent = destination.name;
             const latLng = [parseCoordinate(destination.lng), parseCoordinate(destination.lat)]; // OpenLayers: [lng, lat]
             const olCoords = fromLonLat(latLng);
@@ -679,6 +782,126 @@
             window.location.href = SEARCH_PAGE_URL;
         }
 
+        /**
+         * Envía datos de incidentes a Google Apps Script.
+         * @param {string} incidentType - Tipo de incidente (ej., "Tráfico Lento").
+         * @param {string} description - Descripción del incidente.
+         */
+        async function sendIncidentData(incidentType, description) {
+            if (!userCurrentLatitude || !userCurrentLongitude) {
+                showNotification('No se pudo obtener la ubicación para reportar el incidente.', 4000);
+                return;
+            }
+
+            const submitButton = document.getElementById('submit-incident-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Enviando...';
+
+            try {
+                const dataToSend = {
+                    evento: incidentType,
+                    lat: userCurrentLatitude,
+                    lng: userCurrentLongitude,
+                    description: description // Include description if your Apps Script can handle it
+                };
+
+                const response = await fetch(INCIDENT_APP_SCRIPT_URL, {
+                    method: 'POST',
+                    mode: 'no-cors', // Required for simple POST requests to Apps Script from client-side
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(dataToSend),
+                });
+
+                // Since we are using 'no-cors' mode, we cannot directly read the response body.
+                // Assume success if no network error.
+                showNotification('¡Incidente reportado, gracias!', 4000);
+                toggleModal(incidentFormOverlay, false);
+                incidentForm.reset();
+                loadIncidents(); // Reload incidents to show the newly added one
+            } catch (error) {
+                console.error("Error al enviar incidente:", error);
+                showNotification('Error al reportar incidente. Inténtalo de nuevo.', 4000);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Reportar Incidente';
+            }
+        }
+
+        /**
+         * Carga los incidentes existentes desde Google Apps Script y los muestra en el mapa.
+         */
+        async function loadIncidents() {
+            // Remove existing incident markers before loading new ones
+            const existingIncidentOverlays = map.getOverlays().getArray().filter(overlay => 
+                overlay.getElement() && overlay.getElement().classList.contains('incident-icon-div')
+            );
+            existingIncidentOverlays.forEach(overlay => map.removeOverlay(overlay));
+
+            // Also clear incident features from the vector source if they were added as features
+            const incidentFeaturesToRemove = routeVectorSource.getFeatures().filter(feature => 
+                feature.get('type') === 'incident'
+            );
+            incidentFeaturesToRemove.forEach(feature => routeVectorSource.removeFeature(feature));
+
+
+            try {
+                const response = await fetch(INCIDENT_APP_SCRIPT_URL, { method: 'GET' });
+                if (!response.ok) throw new Error(`Error al cargar incidentes: ${response.statusText}`);
+                const incidents = await response.json();
+
+                incidents.forEach(incident => {
+                    addIncidentMarker(incident);
+                });
+                console.log(`Cargados ${incidents.length} incidentes.`);
+            } catch (error) {
+                console.error("Error al cargar incidentes:", error);
+                showNotification('No se pudieron cargar los incidentes.', 3000);
+            }
+        }
+
+        /**
+         * Agrega un marcador de incidente al mapa.
+         * @param {object} incident - Objeto de incidente con lat, lng y evento.
+         */
+        function addIncidentMarker(incident) {
+            const incidentCoords = fromLonLat([parseCoordinate(incident.lng), parseCoordinate(incident.lat)]);
+            
+            const incidentIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-alert-triangle"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>`;
+            const incidentMarkerEl = document.createElement('div');
+            incidentMarkerEl.className = 'incident-icon-div';
+            incidentMarkerEl.innerHTML = incidentIconSvg;
+            
+            const incidentOverlay = new Overlay({
+                element: incidentMarkerEl,
+                position: incidentCoords,
+                positioning: 'center-center' // Centra el ícono en las coordenadas
+            });
+            map.addOverlay(incidentOverlay);
+
+            incidentMarkerEl.addEventListener('click', () => {
+                const descriptionText = incident.description ? `<br>Descripción: ${incident.description}` : '';
+                showNotification(`Incidente: ${incident.evento}${descriptionText}<br>Reportado: ${new Date(incident.timestamp).toLocaleString()}`, 5000);
+            });
+
+            // Optional: You could also add incidents as Features to routeVectorSource
+            // const incidentFeature = new ol.Feature({
+            //     geometry: new Point(incidentCoords),
+            //     type: 'incident', // Custom property to identify it later
+            //     details: incident // Store full incident details
+            // });
+            // incidentFeature.setStyle(new Style({
+            //     image: new Circle({
+            //         radius: 10,
+            //         fill: new Fill({ color: 'rgba(255, 59, 48, 0.7)' }), // Red color for incidents
+            //         stroke: new Stroke({ color: 'white', width: 2 })
+            //     })
+            // }));
+            // routeVectorSource.addFeature(incidentFeature);
+        }
+
+
         // --- Configuración de Event Listeners ---
         document.addEventListener('DOMContentLoaded', () => {
             initMap();
@@ -736,9 +959,42 @@
                 if (userLocationOverlay && userLocationOverlay.getPosition()) {
                     map.getView().setCenter(userLocationOverlay.getPosition());
                     map.getView().setZoom(16);
+                    showNotification('Ubicación centrada', 1500);
                 } else {
                     toggleModal(locationPermissionOverlay, true);
                 }
+            });
+
+            // --- Incident Reporting Event Listeners ---
+            document.getElementById('report-incident-button').addEventListener('click', () => {
+                if (userCurrentLatitude && userCurrentLongitude) {
+                    toggleModal(reportIncidentOverlay, true);
+                } else {
+                    showNotification('Necesitamos tu ubicación para reportar un incidente.', 4000);
+                    // Optionally, prompt for location permission again
+                    toggleModal(locationPermissionOverlay, true);
+                }
+            });
+
+            document.getElementById('confirm-report-incident-button').addEventListener('click', () => {
+                toggleModal(reportIncidentOverlay, false);
+                toggleModal(incidentFormOverlay, true);
+            });
+
+            document.getElementById('cancel-report-incident-button').addEventListener('click', () => {
+                toggleModal(reportIncidentOverlay, false);
+            });
+
+            document.getElementById('close-incident-form-button').addEventListener('click', () => {
+                toggleModal(incidentFormOverlay, false);
+                incidentForm.reset(); // Reset form when closed
+            });
+
+            incidentForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const incidentType = document.getElementById('incident-type').value;
+                const incidentDescription = document.getElementById('incident-description').value;
+                await sendIncidentData(incidentType, incidentDescription);
             });
 
             // OpenLayers generalmente maneja el redimensionamiento automáticamente con CSS, pero una actualización manual no está de más
@@ -747,4 +1003,3 @@
     </script>
 </body>
 </html>
-
