@@ -1,339 +1,477 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buscar Destino o Ruta</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" xintegrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0v4LLanw2qksYuRlEzO+tcaEPQogQ0KaoGN26/zrn20ImR1DfuLWnOo7aBA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            overscroll-behavior-y: contain;
-        }
-        .search-input-container input:focus {
-            box-shadow: 0 0 0 2px theme('colors.blue.500');
-        }
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-        ::-webkit-scrollbar-thumb {
-            background-color: #cbd5e1;
-            border-radius: 3px;
-        }
-        ::-webkit-scrollbar-track {
-            background-color: #f1f5f9;
-        }
-        .result-item, .route-item { /* Aplicar animación a rutas también */
-            opacity: 0;
-            transform: translateY(10px);
-            animation: fadeInItem 0.3s ease-out forwards;
-        }
-        @keyframes fadeInItem {
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        #search-notification, #loading-indicator { /* Estilo para indicador de carga */
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 0.5s ease-in-out;
-            pointer-events: none;
-        }
-        #search-notification.show, #loading-indicator.show {
-            opacity: 1;
-            pointer-events: auto; /* Permitir interacción si es un loader clickeable, aunque no es el caso aquí */
-        }
-        .route-item:hover {
-            background-color: #eef2ff; /* indigo-50 */
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rastreador GPS con Velocímetro</title>
+  <style>
+    :root {
+      --ios-blue: #007AFF;
+      --ios-gray: #F2F2F7;
+      --ios-dark-gray: #8E8E93;
+      --ios-light-gray: #E5E5EA;
+      --ios-red: #FF3B30;
+      --ios-green: #34C759;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      padding: 20px;
+      background: var(--ios-gray);
+      color: #1C1C1E;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    
+    .card-section {
+      padding: 16px;
+      border-bottom: 0.5px solid var(--ios-light-gray);
+    }
+    
+    .card-section:last-child {
+      border-bottom: none;
+    }
+    
+    h2 {
+      font-size: 1.4em;
+      font-weight: 600;
+      margin: 0;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .speedometer-section {
+        padding: 24px 16px;
+        text-align: center;
+        border-bottom: 0.5px solid var(--ios-light-gray);
+    }
+
+    .speed-display {
+        font-size: 4em;
+        font-weight: 200;
+        line-height: 1;
+        color: #1C1C1E;
+    }
+    
+    .speed-unit {
+        font-size: 1.2em;
+        font-weight: 400;
+        color: var(--ios-dark-gray);
+        margin-top: 4px;
+    }
+    
+    .input-field {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    
+    .input-field label {
+      display: block;
+      font-size: 0.85em;
+      color: var(--ios-dark-gray);
+      margin-bottom: 4px;
+    }
+    
+    .input-field input {
+      width: 100%;
+      font-size: 1em;
+      padding: 8px 0;
+      border: none;
+      border-bottom: 1px solid var(--ios-light-gray);
+      outline: none;
+      background-color: transparent;
+    }
+    
+    .input-field input:focus {
+      border-bottom-color: var(--ios-blue);
+    }
+    
+    .switch-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+    
+    .switch-label {
+      font-size: 1em;
+    }
+    
+    .ios-switch {
+      position: relative;
+      width: 52px;
+      height: 32px;
+    }
+    
+    .ios-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .ios-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: var(--ios-light-gray);
+      transition: .4s;
+      border-radius: 32px;
+    }
+    
+    .ios-slider:before {
+      position: absolute;
+      content: "";
+      height: 28px;
+      width: 28px;
+      left: 2px;
+      bottom: 2px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    input:checked + .ios-slider {
+      background-color: var(--ios-blue);
+    }
+    
+    input:checked + .ios-slider:before {
+      transform: translateX(20px);
+    }
+    
+    .status {
+      text-align: center;
+      padding: 16px;
+      font-size: 0.9em;
+      color: var(--ios-dark-gray);
+    }
+    
+    .status.active {
+      color: var(--ios-green);
+    }
+    
+    .status.error {
+      color: var(--ios-red);
+    }
+    
+    .permission-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    
+    .permission-card {
+      background: white;
+      border-radius: 14px;
+      padding: 20px;
+      max-width: 300px;
+      text-align: center;
+    }
+    
+    .permission-title {
+      font-size: 1.2em;
+      font-weight: 600;
+      margin-bottom: 10px;
+    }
+    
+    .permission-text {
+      font-size: 0.95em;
+      margin-bottom: 20px;
+      color: var(--ios-dark-gray);
+    }
+    
+    .permission-button {
+      background: var(--ios-blue);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      width: 100%;
+    }
+    
+    .permission-button:active {
+      opacity: 0.8;
+    }
+
+    .button-container {
+        padding: 16px;
+        display: flex;
+        justify-content: center;
+    }
+
+    #toggleButton {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        font-size: 1.1em;
+        font-weight: 600;
+        color: white;
+        background-color: var(--ios-dark-gray);
+        border: none;
+        border-radius: 12px;
+        padding: 12px 24px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.1);
+        width: 80%;
+        max-width: 250px;
+    }
+    
+    #toggleButton.active {
+        background-color: var(--ios-green);
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.1);
+        transform: translateY(1px);
+    }
+  </style>
 </head>
-<body class="bg-gray-50 text-gray-800 h-screen flex flex-col">
+<body>
 
-    <header class="bg-white shadow-md p-4 sticky top-0 z-20">
-        <div class="max-w-3xl mx-auto flex items-center justify-between">
-            <button id="back-to-map-button" title="Volver al Mapa" class="text-blue-600 hover:text-blue-800 transition-colors">
-                <i class="fas fa-arrow-left fa-lg"></i>
-            </button>
-            <h1 class="text-xl font-semibold text-gray-700">Buscar Destino o Ruta</h1>
-            <div class="w-8"></div>
-        </div>
-    </header>
-
-    <main class="flex-grow overflow-y-auto p-4 md:p-6">
-        <div class="max-w-3xl mx-auto">
-
-            <div class="search-input-container relative mb-6">
-                <input type="text" id="destination-search-input"
-                       placeholder="Ingresa una dirección o lugar"
-                       class="w-full p-4 pr-12 text-lg border border-gray-300 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-shadow">
-                <button id="clear-search-button" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
-                    <i class="fas fa-times-circle fa-lg"></i>
-                </button>
-            </div>
-
-            <div id="search-results-container">
-                <div id="initial-suggestions">
-                    </div>
-
-                <div id="dynamic-results-list" class="hidden">
-                    </div>
-
-                <div id="google-sheets-routes" class="mt-8">
-                    <h2 class="text-lg font-semibold text-gray-600 mb-1">Rutas desde Google Sheets</h2>
-                    <p class="text-sm text-gray-500 mb-3">Selecciona una ruta para verla en el mapa.</p>
-                    <ul id="sheets-route-list" class="space-y-2">
-                        <li id="loading-routes-placeholder" class="text-gray-500 p-3 text-center">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>Cargando rutas disponibles...
-                        </li>
-                    </ul>
-                    <p id="no-sheets-routes" class="text-gray-500 hidden p-3 text-center">No se encontraron rutas en Google Sheets o hubo un error al cargarlas.</p>
-                </div>
-
-
-                <div id="recent-searches" class="mt-8">
-                    <h2 class="text-lg font-semibold text-gray-600 mb-3">Recientes (Destinos)</h2>
-                    <ul id="recent-list" class="space-y-2">
-                        <li class="destination-item bg-white p-3 rounded-lg shadow-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center" data-name="Centro Histórico, Puebla" data-lat="19.0431" data-lng="-98.1980">
-                            <span><i class="fas fa-history text-gray-400 mr-2"></i>Centro Histórico, Puebla</span>
-                            <i class="fas fa-chevron-right text-gray-400"></i>
-                        </li>
-                    </ul>
-                    <p id="no-recents" class="text-gray-500 hidden">No hay búsquedas recientes.</p>
-                </div>
-
-                <div id="favorite-places" class="mt-8">
-                    <h2 class="text-lg font-semibold text-gray-600 mb-3">Favoritos (Destinos)</h2>
-                    <ul id="favorite-list" class="space-y-2">
-                        <li class="destination-item bg-white p-3 rounded-lg shadow-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center" data-name="Casa (Simulado)" data-lat="19.0500" data-lng="-98.2100">
-                            <span><i class="fas fa-star text-yellow-400 mr-2"></i>Casa</span>
-                            <i class="fas fa-chevron-right text-gray-400"></i>
-                        </li>
-                    </ul>
-                     <p id="no-favorites" class="text-gray-500 hidden">No tienes lugares favoritos.</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="bg-white p-4 border-t border-gray-200 sticky bottom-0 z-20">
-        <div class="max-w-3xl mx-auto flex justify-end">
-            <button id="search-on-map-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all">
-                <i class="fas fa-map-marked-alt mr-2"></i>Buscar en el Mapa
-            </button>
-        </div>
-    </footer>
-
-    <div id="search-notification">Mensaje de notificación</div>
-    <div id="loading-indicator"> <i class="fas fa-spinner fa-spin mr-2"></i>Procesando...
+  <div class="card">
+    <h2>Rastreador GPS</h2>
+    
+    <div class="speedometer-section">
+        <div class="speed-display" id="speedDisplay">0</div>
+        <div class="speed-unit">km/h</div>
     </div>
 
+    <div class="card-section">
+      <div class="input-field">
+        <label for="ruta">Nombre de la ruta</label>
+        <input type="text" id="ruta" placeholder="Ej: Viaje a la playa" />
+      </div>
+    </div>
+    
+    <div class="card-section">
+       <div class="button-container">
+            <button id="toggleButton">Rastreo APAGADO</button>
+       </div>
+       <div class="switch-container">
+        <span class="switch-label">Rastrear solo al acelerar</span>
+        <label class="ios-switch">
+          <input type="checkbox" id="trackOnSpeed">
+          <span class="ios-slider"></span>
+        </label>
+      </div>
+      <div class="status" id="estado">Listo para comenzar</div>
+    </div>
+  </div>
+  
+  <div class="permission-modal" id="permissionModal">
+    <div class="permission-card">
+      <div class="permission-title">Permiso de ubicación</div>
+      <div class="permission-text">Esta aplicación necesita acceso a tu ubicación para funcionar correctamente. Por favor acepta el permiso cuando te lo solicite tu navegador.</div>
+      <button class="permission-button" id="permissionButton">Entendido</button>
+    </div>
+  </div>
 
-    <script>
-        const searchInput = document.getElementById('destination-search-input');
-        const clearSearchButton = document.getElementById('clear-search-button');
-        const initialSuggestions = document.getElementById('initial-suggestions');
-        const dynamicResultsList = document.getElementById('dynamic-results-list');
-        const recentSearchesSection = document.getElementById('recent-searches');
-        const favoritePlacesSection = document.getElementById('favorite-places');
-        const backToMapButton = document.getElementById('back-to-map-button');
-        const searchOnMapButton = document.getElementById('search-on-map-button');
-        const notificationElement = document.getElementById('search-notification');
-        const loadingIndicatorElement = document.getElementById('loading-indicator'); // Elemento del loader
+  <script>
+    const URL_SHEET = "https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec";
+    let watchId;
+    let lastSpeed = 0;
+    let firstLocationRequest = true;
+    let isTracking = false;
+    let lastSendTime = 0;
 
-        const sheetsRouteListElement = document.getElementById('sheets-route-list');
-        const loadingRoutesPlaceholder = document.getElementById('loading-routes-placeholder');
-        const noSheetsRoutesMessage = document.getElementById('no-sheets-routes');
+    const rutaInput = document.getElementById("ruta");
+    const toggleButton = document.getElementById("toggleButton");
+    const trackOnSpeedSwitch = document.getElementById("trackOnSpeed");
+    const statusElement = document.getElementById("estado");
+    const speedDisplay = document.getElementById("speedDisplay");
+    const permissionModal = document.getElementById('permissionModal');
+    const permissionButton = document.getElementById('permissionButton');
 
-        const MAP_PAGE_URL = 'index.html';
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzCjSRkHlyfjWcgnd2JfFbfVtfsnLisVCXZLanIULRk8iWwW7bTBVZx3SIgxewaMupU/exec';
+    function showPermissionModal() {
+      permissionModal.style.display = 'flex';
+    }
 
-        // Datos simulados para resultados de búsqueda de lugares (se mantienen)
-        const simulatedResults = [
-            { name: "Catedral de Puebla", address: "C. 16 de Septiembre s/n, Centro histórico", type: "Lugar de interés", lat: 19.0431, lng: -98.1980 },
-            { name: "Museo Amparo", address: "C. 2 Sur 708, Centro histórico", type: "Museo", lat: 19.0409, lng: -98.1999 },
-        ];
+    permissionButton.addEventListener('click', () => {
+      permissionModal.style.display = 'none';
+      requestLocation();
+    });
 
-        function showNotification(message, duration = 3000) {
-            notificationElement.textContent = message;
-            notificationElement.classList.add('show');
-            setTimeout(() => {
-                notificationElement.classList.remove('show');
-            }, duration);
+    function updateStatus(message, type = '') {
+      statusElement.textContent = message;
+      statusElement.className = 'status';
+      if (type) {
+        statusElement.classList.add(type);
+      }
+    }
+
+    function requestLocation() {
+        if (!navigator.geolocation) {
+            updateStatus("Geolocalización no soportada", "error");
+            return;
+        }
+
+        if (firstLocationRequest) {
+            showPermissionModal();
+            firstLocationRequest = false;
+            return; 
+        }
+
+        startWatching();
+    }
+
+
+    function startWatching() {
+        const ruta = rutaInput.value.trim();
+        if (!ruta) {
+            updateStatus("Ingresa un nombre de ruta", "error");
+            isTracking = false;
+            toggleButton.classList.remove('active');
+            toggleButton.textContent = 'Rastreo APAGADO';
+            return;
+        }
+      
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
         }
         
-        function showLoadingIndicator(message = "Procesando...") {
-            loadingIndicatorElement.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${message}`;
-            loadingIndicatorElement.classList.add('show');
+        updateStatus("Rastreo activado. Esperando señal...", "active");
+
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
+        watchId = navigator.geolocation.watchPosition(handlePosition, handleError, options);
+    }
+    
+    function stopWatching() {
+        if (watchId) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+            updateStatus("Rastreo desactivado.");
+            speedDisplay.textContent = '0';
+            lastSpeed = 0;
+            lastSendTime = 0;
         }
+    }
+    
+    function handlePosition(pos) {
+        const speed = pos.coords.speed ? pos.coords.speed * 3.6 : 0; // Convert m/s to km/h
+        speedDisplay.textContent = Math.round(speed);
+        
+        if (!isTracking) return;
 
-        function hideLoadingIndicator() {
-            loadingIndicatorElement.classList.remove('show');
-        }
-
-
-        function navigateToMapWithDestination(destinationData) {
-            showNotification(`Navegando a: ${destinationData.name}`);
-            const params = new URLSearchParams();
-            params.append('destination', JSON.stringify(destinationData)); // Para destinos puntuales
-            window.location.href = `${MAP_PAGE_URL}?${params.toString()}`;
-        }
-
-        function navigateToMapWithRouteName(routeName) {
-            showNotification(`Cargando ruta: ${routeName}`);
-            const params = new URLSearchParams();
-            params.append('routeName', routeName); // Para rutas de Google Sheets
-            window.location.href = `${MAP_PAGE_URL}?${params.toString()}`;
-        }
-
-        async function fetchAvailableRoutes() {
-            loadingRoutesPlaceholder.classList.remove('hidden');
-            noSheetsRoutesMessage.classList.add('hidden');
-            sheetsRouteListElement.innerHTML = ''; // Limpiar lista existente, excepto el placeholder
-            sheetsRouteListElement.appendChild(loadingRoutesPlaceholder);
-
-
-            try {
-                const response = await fetch(GOOGLE_SCRIPT_URL);
-                if (!response.ok) {
-                    throw new Error(`Error del servidor: ${response.status}`);
-                }
-                const routeNames = await response.json();
-
-                loadingRoutesPlaceholder.classList.add('hidden');
-
-                if (Array.isArray(routeNames) && routeNames.length > 0) {
-                    routeNames.forEach((routeName, index) => {
-                        const item = document.createElement('li');
-                        item.className = 'route-item bg-white p-3 rounded-lg shadow-sm hover:bg-indigo-50 cursor-pointer flex justify-between items-center transition-colors';
-                        item.style.animationDelay = `${index * 0.05}s`;
-                        item.innerHTML = `
-                            <span><i class="fas fa-route text-indigo-500 mr-3"></i>${routeName}</span>
-                            <i class="fas fa-chevron-right text-gray-400"></i>
-                        `;
-                        item.addEventListener('click', () => {
-                            navigateToMapWithRouteName(routeName);
-                        });
-                        sheetsRouteListElement.appendChild(item);
-                    });
-                } else {
-                    noSheetsRoutesMessage.classList.remove('hidden');
-                }
-            } catch (error) {
-                console.error("Error fetching Google Sheets routes:", error);
-                loadingRoutesPlaceholder.classList.add('hidden');
-                noSheetsRoutesMessage.textContent = "Error al cargar rutas. Verifica la conexión o la consola.";
-                noSheetsRoutesMessage.classList.remove('hidden');
-                showNotification("Error al cargar rutas de Google Sheets.", 4000);
-            }
+        const now = Date.now();
+        if (now - lastSendTime < 30000) { // Throttle: wait 30 seconds
+            // Still provide feedback even if not sending
+             if (trackOnSpeedSwitch.checked) {
+                updateStatus("Esperando aceleración...", "active");
+             } else {
+                updateStatus("Rastreando...", "active");
+             }
+            return;
         }
 
 
-        function displayResults(results) {
-            // ... (código de displayResults para búsqueda de lugares se mantiene igual)
-            dynamicResultsList.innerHTML = '';
-            if (results.length === 0) {
-                dynamicResultsList.innerHTML = '<p class="text-gray-500 p-4 text-center">No se encontraron resultados.</p>';
+        const shouldTrackOnSpeed = trackOnSpeedSwitch.checked;
+        let sendData = false;
+        
+        if (shouldTrackOnSpeed) {
+            if (speed > lastSpeed) {
+                updateStatus("Aceleración detectada. Enviando...", "active");
+                sendData = true;
             } else {
-                results.forEach((result, index) => {
-                    const item = document.createElement('div');
-                    item.className = 'result-item bg-white p-4 rounded-lg shadow mb-3 hover:bg-gray-100 cursor-pointer transition-colors';
-                    item.style.animationDelay = `${index * 0.05}s`;
-                    item.innerHTML = `
-                        <h3 class="font-semibold text-md text-blue-700">${result.name}</h3>
-                        <p class="text-sm text-gray-600">${result.address}</p>
-                        <p class="text-xs text-gray-400 mt-1">${result.type}</p>
-                    `;
-                    item.addEventListener('click', () => {
-                        navigateToMapWithDestination({
-                            name: result.name,
-                            address: result.address,
-                            lat: result.lat,
-                            lng: result.lng
-                        });
-                    });
-                    dynamicResultsList.appendChild(item);
-                });
+                 updateStatus("Esperando aceleración...", "active");
             }
-            initialSuggestions.classList.add('hidden');
-            // Ocultar otras secciones si se muestran resultados de búsqueda de lugares
-            document.getElementById('google-sheets-routes').classList.add('hidden');
-            recentSearchesSection.classList.add('hidden');
-            favoritePlacesSection.classList.add('hidden');
-            dynamicResultsList.classList.remove('hidden');
+        } else {
+             updateStatus("Enviando ubicación periódicamente...", "active");
+             sendData = true;
         }
-
-        function resetToInitialView() {
-            dynamicResultsList.classList.add('hidden');
-            initialSuggestions.classList.remove('hidden'); // Mostrar sugerencias si las hay
-            document.getElementById('google-sheets-routes').classList.remove('hidden'); // Mostrar rutas de Sheets
-            recentSearchesSection.classList.remove('hidden');
-            favoritePlacesSection.classList.remove('hidden');
-            searchInput.value = '';
-            clearSearchButton.classList.add('hidden');
+        
+        if(sendData){
+            enviarDatos(pos.coords);
+            lastSendTime = now; // Reset timer after sending
         }
+        
+        lastSpeed = speed;
+    }
+    
+    function handleError(err) {
+        console.error("Error de Geolocalización:", err);
+        let message = "Error de geolocalización.";
+        if (err.code === err.PERMISSION_DENIED) {
+            message = "Permiso de ubicación denegado.";
+            showPermissionModal();
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+            message = "Información de ubicación no disponible.";
+        } else if (err.code === err.TIMEOUT) {
+            message = "Se agotó el tiempo de espera para obtener la ubicación.";
+        }
+        updateStatus(message, "error");
+        stopWatching();
+    }
 
-        searchInput.addEventListener('input', () => {
-            const query = searchInput.value.trim();
-            if (query.length > 0) {
-                clearSearchButton.classList.remove('hidden');
-                setTimeout(() => {
-                    if (searchInput.value.trim() === query) {
-                        const filteredResults = simulatedResults.filter(r =>
-                            r.name.toLowerCase().includes(query.toLowerCase()) ||
-                            r.address.toLowerCase().includes(query.toLowerCase())
-                        );
-                        displayResults(filteredResults); // Esto ocultará la sección de rutas de Sheets
-                    }
-                }, 300);
-            } else {
-                clearSearchButton.classList.add('hidden');
-                resetToInitialView(); // Esto mostrará de nuevo la sección de rutas de Sheets
-            }
+
+    function enviarDatos(coords) {
+      const ruta = rutaInput.value.trim();
+      const form = new FormData();
+      form.append("ruta", ruta);
+      form.append("latitud", coords.latitude);
+      form.append("longitud", coords.longitude);
+      form.append("velocidad", coords.speed ? coords.speed * 3.6 : 0);
+
+      fetch(URL_SHEET, { method: "POST", body: form })
+        .then(res => res.text())
+        .then(txt => {
+          console.log("Servidor dice:", txt);
+          const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          updateStatus(`Enviado a las ${time}`, "active");
+        })
+        .catch(err => {
+          console.error(err);
+          updateStatus("Error al enviar", "error");
         });
+    }
 
-        clearSearchButton.addEventListener('click', () => {
-            resetToInitialView();
-        });
+    toggleButton.addEventListener('click', () => {
+        isTracking = !isTracking;
+        if (isTracking) {
+            toggleButton.classList.add('active');
+            toggleButton.textContent = 'Rastreo ENCENDIDO';
+            requestLocation();
+        } else {
+            toggleButton.classList.remove('active');
+            toggleButton.textContent = 'Rastreo APAGADO';
+            stopWatching();
+        }
+    });
 
-        // Event listeners para Recientes y Favoritos (destinos puntuales)
-        document.querySelectorAll('.destination-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const name = item.dataset.name;
-                const lat = parseFloat(item.dataset.lat);
-                const lng = parseFloat(item.dataset.lng);
-                if (name && !isNaN(lat) && !isNaN(lng)) {
-                    navigateToMapWithDestination({ name, lat, lng, address: item.querySelector('span').textContent });
-                } else {
-                    showNotification("Error: Datos de destino incompletos.", 3000);
-                }
-            });
-        });
+    trackOnSpeedSwitch.addEventListener("change", () => {
+        if(!isTracking){
+            trackOnSpeedSwitch.checked = false;
+            updateStatus("Activa el rastreo primero", "error");
+        }
+    });
+    
+    rutaInput.addEventListener("focus", () => {
+      updateStatus("Ingresa un nombre descriptivo para tu ruta");
+    });
 
-
-        backToMapButton.addEventListener('click', () => {
-            window.location.href = MAP_PAGE_URL;
-        });
-
-        searchOnMapButton.addEventListener('click', () => {
-            window.location.href = `${MAP_PAGE_URL}?searchMode=true`;
-        });
-
-        // Inicialización
-        fetchAvailableRoutes(); // Cargar rutas de Google Sheets al iniciar
-        showNotification("Pantalla de búsqueda lista.", 1500);
-
-    </script>
+  </script>
 </body>
 </html>
-
